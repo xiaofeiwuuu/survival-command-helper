@@ -267,10 +267,15 @@ public class CloneScreen extends CmdHelperScreen {
         this.addRenderableWidget(fields.yBox);
         this.addRenderableWidget(fields.zBox);
 
-        String label = "脚下 Y-1";
-        int checkboxX = left + LABEL_W + GROUP_W + 4 + 46 + 4;
-        Checkbox checkbox = this.addRenderableWidget(
-                new Checkbox(checkboxX, y, this.font.width(label) + 24, 18, Component.literal(label), belowFeet));
+        // Row: [x][y][z] [paste] [用当前] [☐Y-1]. "Y-1" is short on purpose so the whole row still fits
+        // beside the history column; it means "the block under the player's feet".
+        int pasteX = left + LABEL_W + GROUP_W + 4;
+        this.addRenderableWidget(fields.createPasteBox(this.font, pasteX, y, 60, 18));
+
+        int currentX = pasteX + 60 + 4;
+        String label = "Y-1";
+        Checkbox checkbox = this.addRenderableWidget(new Checkbox(currentX + 46 + 4, y,
+                this.font.width(label) + 24, 18, Component.literal(label), belowFeet));
         checkboxOut.accept(checkbox);
 
         this.addRenderableWidget(Button.builder(Component.literal("用当前"), b -> {
@@ -278,7 +283,7 @@ public class CloneScreen extends CmdHelperScreen {
             if (p != null) {
                 fields.fillFrom(p.getX(), p.getY() - (checkbox.selected() ? 1 : 0), p.getZ());
             }
-        }).bounds(left + LABEL_W + GROUP_W + 4, y, 46, 18).build());
+        }).bounds(currentX, y, 46, 18).build());
         return fields;
     }
 

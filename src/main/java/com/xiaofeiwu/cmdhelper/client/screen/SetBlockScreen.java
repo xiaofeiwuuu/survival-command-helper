@@ -54,6 +54,7 @@ public class SetBlockScreen extends CmdHelperScreen {
                 pos.fillFrom(p.getX(), p.getY(), p.getZ());
             }
         }).bounds(centerX + 14, 42, 90, 18).build());
+        this.addRenderableWidget(pos.createPasteBox(this.font, centerX + 108, 42, 90, 18));
 
         List<String> modes = new ArrayList<>();
         modes.add(DEFAULT_MODE);

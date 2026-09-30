@@ -200,6 +200,8 @@ public class FillScreen extends CmdHelperScreen {
         this.from = CoordinateFields.create(this.font, fromFieldX, 66, COORD_BOX_W, 18);
         rememberCoords("from", from);
         addCoordWidgets(from);
+        // Paste "x y z" (from the main menu's copy-coordinates button) straight below the three boxes.
+        this.addRenderableWidget(from.createPasteBox(this.font, fromFieldX, 90, COORD_GROUP_W, 18));
         int fromBtnX = fromFieldX + COORD_GROUP_W + 4;
         this.addRenderableWidget(Button.builder(Component.literal("用当前"), b -> {
             var p = this.minecraft.player;
@@ -211,6 +213,7 @@ public class FillScreen extends CmdHelperScreen {
         this.to = CoordinateFields.create(this.font, toFieldX, 66, COORD_BOX_W, 18);
         rememberCoords("to", to);
         addCoordWidgets(to);
+        this.addRenderableWidget(to.createPasteBox(this.font, toFieldX, 90, COORD_GROUP_W, 18));
         int toBtnX = toFieldX + COORD_GROUP_W + 4;
         this.addRenderableWidget(Button.builder(Component.literal("用当前"), b -> {
             var p = this.minecraft.player;

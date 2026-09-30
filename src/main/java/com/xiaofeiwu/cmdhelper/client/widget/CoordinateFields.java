@@ -1,5 +1,6 @@
 package com.xiaofeiwu.cmdhelper.client.widget;
 
+import com.xiaofeiwu.cmdhelper.client.command.CoordinateParser;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
@@ -26,6 +27,38 @@ public final class CoordinateFields {
             box.setFilter(s -> s.isEmpty() || s.equals("-") || s.matches("-?\\d{0,6}"));
         }
         return new CoordinateFields(xBox, yBox, zBox);
+    }
+
+    public void setAll(int x, int y, int z) {
+        xBox.setValue(String.valueOf(x));
+        yBox.setValue(String.valueOf(y));
+        zBox.setValue(String.valueOf(z));
+    }
+
+    /**
+     * A fourth box to paste "10 64 -5" (or "10，64，-5", "X: 10 Y: 64 Z: -5"...) into: as soon as it holds
+     * exactly three numbers they're spread over X / Y / Z and the box empties. While the text can't be
+     * read yet it turns red, so a paste that didn't work doesn't just sit there looking fine.
+     * The copy-coordinates button on the main menu produces exactly this kind of text.
+     */
+    public EditBox createPasteBox(Font font, int x, int y, int width, int height) {
+        EditBox box = new EditBox(font, x, y, width, height, Component.literal("粘贴坐标"));
+        box.setMaxLength(96);
+        box.setHint(Component.literal("粘贴坐标"));
+        box.setResponder(text -> {
+            if (text.isBlank()) {
+                box.setTextColor(0xE0E0E0);
+                return;
+            }
+            var parsed = CoordinateParser.parse(text);
+            if (parsed.isPresent()) {
+                setAll(parsed.get().x(), parsed.get().y(), parsed.get().z());
+                box.setValue("");
+            } else {
+                box.setTextColor(0xFF6B6B);
+            }
+        });
+        return box;
     }
 
     public void fillFrom(double x, double y, double z) {

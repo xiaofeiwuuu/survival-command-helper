@@ -64,6 +64,7 @@ public class SummonScreen extends CmdHelperScreen {
             var p = this.minecraft.player;
             if (p != null) pos.fillFrom(p.getX(), p.getY(), p.getZ());
         }).bounds(centerX + 29, 40, 90, 18).build());
+        this.addRenderableWidget(pos.createPasteBox(this.font, centerX + 123, 40, 76, 18));
 
         this.trackDropdown(this.addRenderableWidget(new DropdownWidget<>(fieldX, 64, 224, 18,
                 List.copyOf(YAW_PRESETS.keySet()), rotationChoice, s -> s,

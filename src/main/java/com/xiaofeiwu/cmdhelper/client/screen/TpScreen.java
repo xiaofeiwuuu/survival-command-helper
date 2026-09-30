@@ -104,6 +104,7 @@ public class TpScreen extends CmdHelperScreen {
                 var p = this.minecraft.player;
                 if (p != null) coords.fillFrom(p.getX(), p.getY(), p.getZ());
             }).bounds(centerX + 29, y, 90, 18).build());
+            this.addRenderableWidget(coords.createPasteBox(this.font, centerX + 123, y, 76, 18));
             y += 18;
         }
 
