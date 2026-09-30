@@ -80,6 +80,9 @@ public class KillScreen extends CmdHelperScreen {
 
         if (mode != Mode.CUSTOM) {
             this.rangeBox = new EditBox(this.font, centerX + 66, 41, 84, 18, Component.literal("范围"));
+            tip(this.rangeBox, mode == Mode.HOSTILE
+                ? "范围（格）\n以你为中心的距离，单位是方块。\n这个范围也用于主菜单的「清除敌对生物」一键按钮。"
+                : "范围（格）\n以你为中心的距离，单位是方块。");
             this.rangeBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
             if (mode == Mode.HOSTILE) {
                 // The one-click button on the main menu uses this same range, so it's saved
@@ -112,6 +115,7 @@ public class KillScreen extends CmdHelperScreen {
                     .bounds(centerX - 150, y, 110, 18).build());
         } else if (mode == Mode.CUSTOM) {
             this.customBox = new EditBox(this.font, centerX - 150, y, 300, 18, Component.literal("自定义选择器"));
+            tip(this.customBox, "自定义目标选择器\n例如 @e[tag=boss] 或 @e[type=zombie,distance=..10]\n中括号要成对。");
             this.customBox.setHint(Component.literal("例如：@e[tag=boss]  （不含中括号外的 kill）"));
             this.customBox.setValue("@e[");
             remember("custom", this.customBox);
@@ -119,6 +123,7 @@ public class KillScreen extends CmdHelperScreen {
             this.setInitialFocus(this.customBox);
         } else if (mode == Mode.RANGE_TYPE || mode == Mode.NEAREST) {
             EditBox searchBox = new EditBox(this.font, centerX - 150, y, 190, 18, Component.literal("搜索生物"));
+            tip(searchBox, "搜索生物\n可输入中文名、拼音（全拼或首字母）、ID 或模组名。\n多个词用空格分隔，须全部匹配，如「石头 台阶」。");
             searchBox.setHint(Component.literal(mode == Mode.NEAREST ? "搜索生物（可留空）" : "搜索生物：中文名 / 拼音 / ID / 模组名"));
             remember("search", searchBox);
             searchBox.setResponder(q -> this.grid.setQuery(q));

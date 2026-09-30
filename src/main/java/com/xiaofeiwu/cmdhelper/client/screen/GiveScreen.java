@@ -56,12 +56,14 @@ public class GiveScreen extends CmdHelperScreen {
                 value -> this.target = value)));
 
         this.countBox = new EditBox(this.font, centerX + 66, 41, 84, 18, Component.translatable("gui.cmdhelper.count"));
+        tip(this.countBox, "数量\n范围来自服务器，超出会自动限制到允许的范围。");
         this.countBox.setValue("1");
         this.countBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
         remember("count", this.countBox);
         this.addRenderableWidget(this.countBox);
 
         EditBox searchBox = new EditBox(this.font, centerX - 150, 66, 190, 18, Component.translatable("gui.cmdhelper.search_item"));
+        tip(searchBox, "搜索物品\n可输入中文名、拼音（全拼或首字母）、ID 或模组名。\n多个词用空格分隔，须全部匹配，如「石头 台阶」。");
         searchBox.setHint(Component.literal("搜索物品：中文名 / 拼音 / ID / 模组名"));
         remember("search", searchBox);
         searchBox.setResponder(q -> this.grid.setQuery(q));

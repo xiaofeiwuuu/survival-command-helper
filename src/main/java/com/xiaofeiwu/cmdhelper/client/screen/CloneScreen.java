@@ -14,6 +14,7 @@ import com.xiaofeiwu.cmdhelper.client.widget.CoordinateFields;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -151,6 +152,7 @@ public class CloneScreen extends CmdHelperScreen {
                 String label = "共用一层边界";
                 this.shareCheckbox = this.addRenderableWidget(new Checkbox(left, 156,
                         this.font.width(label) + 24, 18, Component.literal(label), shareBoundaryLayer));
+                tip(shareCheckbox, "勾上：每一步少移动 1 格，相邻两份共用相接的那一层。\n适合叠楼层（上一层的顶就是下一层的地面）。");
             }
         }
 
@@ -262,6 +264,7 @@ public class CloneScreen extends CmdHelperScreen {
     private CoordinateFields coordinateRow(int left, int y, String key, boolean belowFeet,
                                            java.util.function.Consumer<Checkbox> checkboxOut) {
         CoordinateFields fields = CoordinateFields.create(this.font, left + LABEL_W, y, BOX_W, 18);
+        fields.withTooltips(subjectFor(key));
         rememberCoords(key, fields);
         this.addRenderableWidget(fields.xBox);
         this.addRenderableWidget(fields.yBox);
@@ -274,13 +277,17 @@ public class CloneScreen extends CmdHelperScreen {
         // boxes is always taken literally.
         Checkbox[] tick = new Checkbox[1];
         int pasteX = left + LABEL_W + GROUP_W + 4;
-        this.addRenderableWidget(fields.createPasteBox(this.font, pasteX, y, 60, 18,
-                () -> tick[0] != null && tick[0].selected()));
+        EditBox paste = fields.createPasteBox(this.font, pasteX, y, 60, 18, () -> tick[0] != null && tick[0].selected());
+        tip(paste, "粘贴坐标\n把主菜单「复制坐标」复制的 x y z 粘贴到这里，会自动拆进左边三个格子。\n"
+                + "勾选右边的「Y-1」时，粘贴的 Y 会自动减 1（取脚下那块方块）。\n"
+                + "支持空格、中英文逗号、括号、X: 10 Y: 64 Z: -5 等写法；必须恰好 3 个数字。");
+        this.addRenderableWidget(paste);
 
         int currentX = pasteX + 60 + 4;
         String label = "Y-1";
         Checkbox checkbox = this.addRenderableWidget(new Checkbox(currentX + 46 + 4, y,
                 this.font.width(label) + 24, 18, Component.literal(label), belowFeet));
+        tip(checkbox, "勾上：「用当前」和粘贴的坐标都取脚下那块方块（Y 减 1）。\n手动敲进格子的数字始终按字面使用。");
         tick[0] = checkbox;
         checkboxOut.accept(checkbox);
 
@@ -289,8 +296,26 @@ public class CloneScreen extends CmdHelperScreen {
             if (p != null) {
                 fields.fillFrom(p.getX(), p.getY() - (checkbox.selected() ? 1 : 0), p.getZ());
             }
-        }).bounds(currentX, y, 46, 18).build());
+        }).bounds(currentX, y, 46, 18).tooltip(Tooltip.create(Component.literal("把你现在站的位置填进左边的坐标格子\n勾上右边的「Y-1」时，Y 取脚下那块方块"))).build());
         return fields;
+    }
+
+    private static String subjectFor(String key) {
+        return switch (key) {
+            case "sourceFrom" -> "源起点";
+            case "sourceTo" -> "源终点";
+            case "destination" -> "目标起点";
+            default -> "位置";
+        };
+    }
+
+    private String directionTip(int direction) {
+        String[] axis = {"X 增大", "Z 增大", "X 减小", "Z 减小", "Y 增大（更高）", "Y 减小（更低）"};
+        String unitText = unit == Unit.SOURCE_SIZE
+                ? "单位：源尺寸的倍数，填 1 = 移动一个完整长度，紧挨着源区域；2 = 隔一个位置。"
+                : "单位：格数，填多少就移动多少格。";
+        return "往" + DIRECTION_LABELS[direction] + "移动（" + axis[direction] + "）\n" + unitText
+                + "\n相反方向的数会互相抵消；不需要的方向留空。";
     }
 
     /** 东 南 西 北 上 下, each "how many blocks to move that way"; opposite directions cancel out. */
@@ -299,6 +324,7 @@ public class CloneScreen extends CmdHelperScreen {
             int labelX = left + i * DIRECTION_STRIDE;
             EditBox box = new EditBox(this.font, labelX + DIRECTION_LABEL_W, y, DIRECTION_BOX_W, 18,
                     Component.literal(DIRECTION_LABELS[i]));
+            tip(box, directionTip(i));
             box.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
             remember(DIRECTION_KEYS[i], box);
             this.addRenderableWidget(box);

@@ -6,6 +6,7 @@ import com.xiaofeiwu.cmdhelper.client.widget.CoordinateFields;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -96,6 +97,7 @@ public class TpScreen extends CmdHelperScreen {
         if (mode == Mode.SELF_TO_COORDS || mode == Mode.PLAYER_TO_COORDS) {
             this.coordsLabelY = y;
             this.coords = CoordinateFields.create(this.font, fieldX, y, 55, 18);
+            coords.withTooltips("目标位置");
             rememberCoords("coords", coords);
             this.addRenderableWidget(coords.xBox);
             this.addRenderableWidget(coords.yBox);
@@ -103,7 +105,7 @@ public class TpScreen extends CmdHelperScreen {
             this.addRenderableWidget(Button.builder(Component.literal("用当前坐标"), b -> {
                 var p = this.minecraft.player;
                 if (p != null) coords.fillFrom(p.getX(), p.getY(), p.getZ());
-            }).bounds(centerX + 29, y, 90, 18).build());
+            }).bounds(centerX + 29, y, 90, 18).tooltip(Tooltip.create(Component.literal("把你现在站的位置填进左边的坐标格子\n（小数会向下取整）"))).build());
             this.addRenderableWidget(coords.createPasteBox(this.font, centerX + 123, y, 76, 18));
             y += 18;
         }

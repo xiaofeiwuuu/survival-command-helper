@@ -137,6 +137,7 @@ public class LocateScreen extends CmdHelperScreen {
             // name anywhere in the game, so let the player give one; it's remembered and used
             // in the list from then on.
             this.nameBox = new EditBox(this.font, centerX - 150, y, 190, 18, Component.literal("自定义中文名"));
+            tip(this.nameBox, "给当前选中的目标起个中文名并保存\n保存后下拉里就显示这个名字；\n清空后再保存可还原。");
             this.nameBox.setMaxLength(LocateNames.MAX_NAME_LENGTH);
             updateNameBox();
             this.addRenderableWidget(this.nameBox);
@@ -158,6 +159,7 @@ public class LocateScreen extends CmdHelperScreen {
 
         this.resultLabelY = buttonsY + 26;
         this.resultBox = new EditBox(this.font, centerX - 150, resultLabelY + 10, 300, 18, Component.literal("结果"));
+        tip(this.resultBox, "服务器返回的原文（只读）\n可点「复制结果」复制；找到后可点「传送过去」。");
         this.resultBox.setValue(resultText);
         this.resultBox.setEditable(false);
         this.addRenderableWidget(this.resultBox);

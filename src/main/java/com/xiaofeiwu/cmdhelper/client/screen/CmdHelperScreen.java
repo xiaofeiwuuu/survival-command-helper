@@ -6,8 +6,10 @@ import com.xiaofeiwu.cmdhelper.client.widget.CoordinateFields;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import com.xiaofeiwu.cmdhelper.client.widget.RegistryGridWidget;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -118,6 +120,17 @@ public abstract class CmdHelperScreen extends Screen {
     protected void passInputsTo(CmdHelperScreen next) {
         captureInputs();
         next.savedInputs.putAll(this.savedInputs);
+    }
+
+    /**
+     * Hover text for a widget, shown after a short pause; "\n" starts a new line. Every text box says
+     * what it wants here, since a bare box gives no hint (why is there a long one after the three
+     * coordinate boxes?).
+     */
+    protected <W extends AbstractWidget> W tip(W widget, String text) {
+        widget.setTooltip(Tooltip.create(Component.literal(text)));
+        widget.setTooltipDelay(150);
+        return widget;
     }
 
     /** The title bar across the top. The main menu turns it off: it's a launcher, not a page. */

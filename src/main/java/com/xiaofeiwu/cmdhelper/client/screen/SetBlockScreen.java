@@ -13,6 +13,7 @@ import com.xiaofeiwu.cmdhelper.client.widget.RegistryGridWidget;
 import com.xiaofeiwu.cmdhelper.client.widget.RegistrySearchWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -43,6 +44,7 @@ public class SetBlockScreen extends CmdHelperScreen {
         int centerX = this.width / 2;
 
         this.pos = CoordinateFields.create(this.font, centerX - 156, 42, 50, 18);
+        pos.withTooltips("放置位置");
         rememberCoords("pos", pos);
         this.addRenderableWidget(pos.xBox);
         this.addRenderableWidget(pos.yBox);
@@ -53,7 +55,7 @@ public class SetBlockScreen extends CmdHelperScreen {
             if (p != null) {
                 pos.fillFrom(p.getX(), p.getY(), p.getZ());
             }
-        }).bounds(centerX + 14, 42, 90, 18).build());
+        }).bounds(centerX + 14, 42, 90, 18).tooltip(Tooltip.create(Component.literal("把你现在站的位置填进左边的坐标格子\n（小数会向下取整）"))).build());
         this.addRenderableWidget(pos.createPasteBox(this.font, centerX + 108, 42, 90, 18));
 
         List<String> modes = new ArrayList<>();
@@ -73,6 +75,7 @@ public class SetBlockScreen extends CmdHelperScreen {
                 BlockFacing.HALF_LABELS, half, s -> "上/下半: " + s, value -> this.half = value)));
 
         EditBox searchBox = new EditBox(this.font, centerX - 150, 118, 190, 18, Component.literal("搜索方块"));
+        tip(searchBox, "搜索方块\n可输入中文名、拼音（全拼或首字母）、ID 或模组名。\n多个词用空格分隔，须全部匹配，如「石头 台阶」。");
         searchBox.setHint(Component.literal("搜索方块：中文名 / 拼音 / ID / 模组名"));
         remember("search", searchBox);
         searchBox.setResponder(q -> this.grid.setQuery(q));

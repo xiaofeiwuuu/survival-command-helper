@@ -8,6 +8,7 @@ import com.xiaofeiwu.cmdhelper.client.widget.ChunkListWidget;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -106,6 +107,7 @@ public class ForceLoadScreen extends CmdHelperScreen {
 
         int resultY = buttonsY + 26;
         this.resultBox = new EditBox(this.font, centerX - 150, resultY, 300, 18, Component.literal("结果"));
+        tip(this.resultBox, "服务器返回的原文（只读）\n可点「复制结果」复制。");
         this.resultBox.setValue(resultText);
         this.resultBox.setEditable(false);
         this.addRenderableWidget(this.resultBox);
@@ -194,6 +196,9 @@ public class ForceLoadScreen extends CmdHelperScreen {
         EditBox zBox = new EditBox(this.font, x0 + 66, y, 60, 18, Component.literal("Z"));
         xBox.setFilter(s -> s.isEmpty() || s.equals("-") || s.matches("-?\\d{0,6}"));
         zBox.setFilter(s -> s.isEmpty() || s.equals("-") || s.matches("-?\\d{0,6}"));
+        String what = from ? (mode == Mode.QUERY_POS ? "要查询的位置" : "起点") : "终点（可选，留空则只处理起点所在的那一个区块）";
+        tip(xBox, what + " X\n填方块坐标（不是区块坐标），会自动换算成它所在的区块。\n东西方向：东为 +");
+        tip(zBox, what + " Z\n填方块坐标（不是区块坐标），会自动换算成它所在的区块。\n南北方向：南为 +");
         remember((from ? "from" : "to") + ".x", xBox);
         remember((from ? "from" : "to") + ".z", zBox);
         this.addRenderableWidget(xBox);
@@ -212,7 +217,7 @@ public class ForceLoadScreen extends CmdHelperScreen {
                 xBox.setValue(String.valueOf((int) Math.floor(p.getX())));
                 zBox.setValue(String.valueOf((int) Math.floor(p.getZ())));
             }
-        }).bounds(x0 + 140, y, 90, 18).build());
+        }).bounds(x0 + 140, y, 90, 18).tooltip(Tooltip.create(Component.literal("把你现在站的位置的 X、Z 填进左边的格子\n（小数会向下取整）"))).build());
     }
 
     private void runCommand() {

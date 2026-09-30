@@ -119,6 +119,7 @@ public class EnvironmentScreen extends CmdHelperScreen {
                 this.trackDropdown(this.addRenderableWidget(new DropdownWidget<>(centerX - 150, timeContentY, 200, 18,
                         SET_VALUES, setValue, SET_LABELS::get, value -> this.setValue = value)));
                 this.customValueBox = new EditBox(this.font, centerX + 58, timeContentY, 92, 18, Component.literal("数值"));
+                tip(this.customValueBox, "自定义时间（刻）\n0~24000 为一天一循环：0 日出，6000 正午，13000 夜晚，18000 午夜");
                 this.customValueBox.setValue(customValue);
                 this.customValueBox.setHint(Component.literal("0-24000"));
                 this.customValueBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,6}"));
@@ -126,6 +127,7 @@ public class EnvironmentScreen extends CmdHelperScreen {
             }
             case ADD -> {
                 this.addAmountBox = new EditBox(this.font, centerX - 150, timeContentY, 190, 18, Component.literal("增加量"));
+                tip(this.addAmountBox, "要增加的时间（刻）\n20 刻 = 1 秒，24000 刻 = 一个游戏日");
                 this.addAmountBox.setValue(addAmount);
                 this.addAmountBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,7}"));
                 this.addRenderableWidget(this.addAmountBox);

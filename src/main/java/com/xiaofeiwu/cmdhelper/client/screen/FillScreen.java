@@ -17,6 +17,7 @@ import com.xiaofeiwu.cmdhelper.client.widget.RegistrySearchWidget;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -108,6 +109,7 @@ public class FillScreen extends CmdHelperScreen {
             int checkboxWidth = this.font.width(label) + 30;
             this.includeFloorCheckbox = this.addRenderableWidget(
                     new Checkbox(centerX - 150, 92, checkboxWidth, 18, Component.literal(label), includeFloor));
+            tip(includeFloorCheckbox, "勾上：从脚下那块方块（Y-1）开始往上填，正好铺满地面。\n不勾：从你脚所在的那一格（空气）开始，会填进你的身体里。");
         }
 
         List<String> modes = new ArrayList<>();
@@ -127,6 +129,7 @@ public class FillScreen extends CmdHelperScreen {
                 BlockFacing.HALF_LABELS, half, s -> "上/下半: " + s, value -> this.half = value)));
 
         EditBox searchBox = new EditBox(this.font, centerX - 150, 170, 190, 18, Component.literal("搜索方块"));
+        tip(searchBox, "搜索方块\n可输入中文名、拼音（全拼或首字母）、ID 或模组名。\n多个词用空格分隔，须全部匹配，如「石头 台阶」。");
         searchBox.setHint(Component.literal("搜索方块：中文名 / 拼音 / ID / 模组名"));
         remember("search", searchBox);
         searchBox.setResponder(q -> this.grid.setQuery(q));
@@ -198,6 +201,7 @@ public class FillScreen extends CmdHelperScreen {
         int x0 = centerX - 190;
         int fromFieldX = x0 + COORD_LABEL_W;
         this.from = CoordinateFields.create(this.font, fromFieldX, 66, COORD_BOX_W, 18);
+        from.withTooltips("起点");
         rememberCoords("from", from);
         addCoordWidgets(from);
         // Paste "x y z" (from the main menu's copy-coordinates button) straight below the three boxes.
@@ -206,11 +210,12 @@ public class FillScreen extends CmdHelperScreen {
         this.addRenderableWidget(Button.builder(Component.literal("用当前"), b -> {
             var p = this.minecraft.player;
             if (p != null) from.fillFrom(p.getX(), p.getY(), p.getZ());
-        }).bounds(fromBtnX, 66, USE_CURRENT_BTN_W, 18).build());
+        }).bounds(fromBtnX, 66, USE_CURRENT_BTN_W, 18).tooltip(Tooltip.create(Component.literal("把你现在站的位置填进左边的坐标格子\n（小数会向下取整）"))).build());
 
         int toLabelX = fromBtnX + USE_CURRENT_BTN_W + 10;
         int toFieldX = toLabelX + COORD_LABEL_W;
         this.to = CoordinateFields.create(this.font, toFieldX, 66, COORD_BOX_W, 18);
+        to.withTooltips("终点");
         rememberCoords("to", to);
         addCoordWidgets(to);
         this.addRenderableWidget(to.createPasteBox(this.font, toFieldX, 90, COORD_GROUP_W, 18));
@@ -218,12 +223,13 @@ public class FillScreen extends CmdHelperScreen {
         this.addRenderableWidget(Button.builder(Component.literal("用当前"), b -> {
             var p = this.minecraft.player;
             if (p != null) to.fillFrom(p.getX(), p.getY(), p.getZ());
-        }).bounds(toBtnX, 66, USE_CURRENT_BTN_W, 18).build());
+        }).bounds(toBtnX, 66, USE_CURRENT_BTN_W, 18).tooltip(Tooltip.create(Component.literal("把你现在站的位置填进左边的坐标格子\n（小数会向下取整）"))).build());
     }
 
     private void initCenteredRow(int centerX) {
         int x0 = centerX - 150;
         this.radiusBox = new EditBox(this.font, x0 + 26, 66, 50, 18, Component.literal("半径"));
+        tip(this.radiusBox, "半径（格）\n以你为中心，向四周各延伸这么多格；半径 5 就是 11×11 的范围。");
         this.radiusBox.setValue("5");
         this.radiusBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
         remember("radius", this.radiusBox);
@@ -231,6 +237,7 @@ public class FillScreen extends CmdHelperScreen {
 
         int hX = x0 + 26 + 50 + 20;
         this.heightBox = new EditBox(this.font, hX + 26, 66, 50, 18, Component.literal("高度"));
+        tip(this.heightBox, "高度（层）\n从起始层往上共几层。默认 1 = 只铺一层（比如铺地板）。");
         this.heightBox.setValue("1");
         this.heightBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
         remember("centeredHeight", this.heightBox);
@@ -240,6 +247,7 @@ public class FillScreen extends CmdHelperScreen {
     private void initForwardRow(int centerX) {
         int x0 = centerX - 150;
         this.lengthBox = new EditBox(this.font, x0 + 26, 66, 46, 18, Component.literal("长度"));
+        tip(this.lengthBox, "长度（格）\n沿你面朝的方向，向前铺多少格。");
         this.lengthBox.setValue("10");
         this.lengthBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
         remember("length", this.lengthBox);
@@ -247,6 +255,7 @@ public class FillScreen extends CmdHelperScreen {
 
         int wX = x0 + 26 + 46 + 14;
         this.widthBox = new EditBox(this.font, wX + 26, 66, 46, 18, Component.literal("宽度"));
+        tip(this.widthBox, "宽度（格）\n左右方向，以你所在的位置为中心。");
         this.widthBox.setValue("3");
         this.widthBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
         remember("width", this.widthBox);
@@ -254,6 +263,7 @@ public class FillScreen extends CmdHelperScreen {
 
         int hX = wX + 26 + 46 + 14;
         this.heightBox = new EditBox(this.font, hX + 26, 66, 46, 18, Component.literal("高度"));
+        tip(this.heightBox, "高度（层）\n从起始层往上共几层。");
         this.heightBox.setValue("3");
         this.heightBox.setFilter(s -> s.isEmpty() || s.matches("\\d{1,4}"));
         remember("forwardHeight", this.heightBox);

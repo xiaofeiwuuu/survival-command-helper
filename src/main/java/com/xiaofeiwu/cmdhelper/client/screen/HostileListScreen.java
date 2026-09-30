@@ -37,6 +37,7 @@ public class HostileListScreen extends CmdHelperScreen {
         int centerX = this.width / 2;
 
         EditBox searchBox = new EditBox(this.font, centerX - 150, 40, 190, 18, Component.literal("搜索生物"));
+        tip(searchBox, "搜索生物（找到后点击即可加入 / 移出敌对名单）\n可输入中文名、拼音（全拼或首字母）、ID 或模组名。\n多个词用空格分隔，须全部匹配，如「石头 台阶」。");
         searchBox.setHint(Component.literal("搜索生物：中文名 / 拼音 / ID / 模组名"));
         remember("search", searchBox);
         searchBox.setResponder(q -> this.grid.setQuery(q));
