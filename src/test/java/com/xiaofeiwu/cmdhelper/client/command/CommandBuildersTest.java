@@ -139,6 +139,11 @@ class CommandBuildersTest {
     }
 
     @Test
+    void teleportToHeight_isAPlainTeleport() {
+        assertEquals("teleport @s -736 320 -720", CommandBuilders.teleportToHeight(-736, 320, -720));
+    }
+
+    @Test
     void teleportKeepingHeight_usesRelativeY() {
         assertEquals("teleport @s 40 ~ -8", CommandBuilders.teleportKeepingHeight(40, -8));
     }

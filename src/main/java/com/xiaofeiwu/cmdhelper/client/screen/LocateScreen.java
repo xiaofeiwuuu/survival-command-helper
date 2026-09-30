@@ -1,11 +1,14 @@
 package com.xiaofeiwu.cmdhelper.client.screen;
 
+import com.xiaofeiwu.cmdhelper.client.command.ChatResultCapture;
 import com.xiaofeiwu.cmdhelper.client.command.CommandBuilders;
 import com.xiaofeiwu.cmdhelper.client.command.CommandExecutor;
 import com.xiaofeiwu.cmdhelper.client.command.CommandSuggestionQuery;
 import com.xiaofeiwu.cmdhelper.client.locate.LocateLabeler;
 import com.xiaofeiwu.cmdhelper.client.locate.LocateNames;
+import com.xiaofeiwu.cmdhelper.client.locate.LocateResult;
 import com.xiaofeiwu.cmdhelper.client.registry.RegistryDataSource;
+import com.xiaofeiwu.cmdhelper.client.teleport.SafeTeleport;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -19,6 +22,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** /locate structure|biome|poi — its result only ever shows up as one line of chat text, which
@@ -72,8 +76,17 @@ public class LocateScreen extends CmdHelperScreen {
     private LocateType type;
     private String targetId;
     private List<String> serverIds;
+    // The replies to /locate, by translation key: found (…success) and not found. Matching on the
+    // key instead of "the next chat line" means an unrelated message can't be mistaken for the answer.
+    private static final Set<String> LOCATE_REPLY_KEYS = Set.of(
+            "commands.locate.structure.success", "commands.locate.biome.success", "commands.locate.poi.success",
+            "commands.locate.structure.not_found", "commands.locate.biome.not_found", "commands.locate.poi.not_found",
+            "commands.locate.structure.invalid");
+
     private String resultText = "";
     private EditBox resultBox;
+    private LocateResult.Position resultPosition;
+    private Button teleportButton;
     private EditBox nameBox;
     private LocateLabeler labeler;
     private int resultLabelY;
@@ -154,6 +167,24 @@ public class LocateScreen extends CmdHelperScreen {
                 CommandExecutor.copyRaw(resultText);
             }
         }).bounds(centerX - 150, resultLabelY + 34, 90, 18).build());
+
+        this.teleportButton = this.addRenderableWidget(Button.builder(Component.literal("传送过去"), b -> teleportToResult())
+                .bounds(centerX - 54, resultLabelY + 34, 100, 18).build());
+    }
+
+    private void teleportToResult() {
+        LocateResult.Position target = resultPosition;
+        if (target == null) {
+            return;
+        }
+        if (target.y() != null) {
+            CommandExecutor.execute(CommandBuilders.teleportToHeight(target.x(), target.y(), target.z()));
+        } else {
+            // A structure's height is unknown ("~"): SafeTeleport finds the ground, loading the
+            // area first if it's far away and not loaded yet.
+            SafeTeleport.toColumn(target.x(), target.z());
+        }
+        this.minecraft.setScreen(null);
     }
 
     private LocateLabeler.Kind kind() {
@@ -191,11 +222,16 @@ public class LocateScreen extends CmdHelperScreen {
             return;
         }
         resultText = "等待结果...";
+        resultPosition = null;
         resultBox.setValue(resultText);
-        CommandExecutor.executeAwaitingResult(cmd, text -> {
-            resultText = text;
+        // Armed after execute(): its own chat echo must not be taken for the reply. The reply stays
+        // in chat (false): vanilla makes its coordinates clickable, which the player may still want.
+        CommandExecutor.execute(cmd);
+        ChatResultCapture.awaitKeyed(LOCATE_REPLY_KEYS, false, message -> {
+            resultText = message.getString();
+            resultPosition = LocateResult.parse(resultText).orElse(null);
             if (resultBox != null) {
-                resultBox.setValue(text);
+                resultBox.setValue(resultText);
             }
         });
     }
@@ -261,5 +297,14 @@ public class LocateScreen extends CmdHelperScreen {
             guiGraphics.drawString(this.font, "名称", centerX - 190, nameBox.getY() + 5, COLOR_MUTED, false);
         }
         guiGraphics.drawString(this.font, "结果（会显示服务器返回的原文，可能包含到该处的距离）", centerX - 150, resultLabelY, COLOR_MUTED, false);
+        if (teleportButton != null) {
+            teleportButton.active = resultPosition != null;
+        }
+        if (resultPosition != null) {
+            String where = "X " + resultPosition.x() + (resultPosition.y() != null ? "  Y " + resultPosition.y() : "")
+                    + "  Z " + resultPosition.z()
+                    + (resultPosition.y() == null ? "（高度未知，传送时自动落到地面）" : "");
+            guiGraphics.drawString(this.font, "目标坐标：" + where, centerX - 150, resultLabelY + 58, COLOR_ACCENT, false);
+        }
     }
 }

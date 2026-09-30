@@ -70,6 +70,7 @@ class CommandDescriberTest {
                 CommandBuilders.teleportSelfToPlayer("Steve"),
                 CommandBuilders.teleportToSurface(136, -120),
                 CommandBuilders.teleportKeepingHeight(136, -120),
+                CommandBuilders.teleportToHeight(-736, 320, -720),
                 CommandBuilders.teleportPlayerToPlayer("Steve", "Alex"),
                 CommandBuilders.teleportPlayerToCoords("Steve", "1 2 3"),
                 CommandBuilders.summon("minecraft:zombie", "1 2 3", "", ""),

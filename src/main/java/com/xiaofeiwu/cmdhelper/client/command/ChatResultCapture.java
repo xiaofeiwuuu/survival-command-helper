@@ -30,6 +30,7 @@ public final class ChatResultCapture {
     // answer), and it hides that message from chat — the screen that asked shows the answer itself.
     private static Set<String> keyedKeys;
     private static Consumer<Component> keyedCallback;
+    private static boolean keyedHidesMessage;
 
     private ChatResultCapture() {
     }
@@ -45,8 +46,14 @@ public final class ChatResultCapture {
      * is left alone. Replaces a previous keyed wait; call {@link #cancelKeyed()} to give up.
      */
     public static void awaitKeyed(Set<String> keys, Consumer<Component> onResult) {
+        awaitKeyed(keys, true, onResult);
+    }
+
+    /** @param hideMessage false leaves the matched message in chat (the caller only wants to read it) */
+    public static void awaitKeyed(Set<String> keys, boolean hideMessage, Consumer<Component> onResult) {
         keyedKeys = keys;
         keyedCallback = onResult;
+        keyedHidesMessage = hideMessage;
     }
 
     public static void cancelKeyed() {
@@ -60,8 +67,11 @@ public final class ChatResultCapture {
                 && event.getMessage().getContents() instanceof TranslatableContents translatable
                 && keyedKeys.contains(translatable.getKey())) {
             Consumer<Component> callback = keyedCallback;
+            boolean hide = keyedHidesMessage;
             cancelKeyed();
-            event.setCanceled(true);
+            if (hide) {
+                event.setCanceled(true);
+            }
             callback.accept(event.getMessage());
             return;
         }

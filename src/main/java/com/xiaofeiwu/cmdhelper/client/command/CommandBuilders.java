@@ -86,6 +86,11 @@ public final class CommandBuilders {
                 + " positioned over motion_blocking_no_leaves run tp @s ~ ~ ~";
     }
 
+    /** Plain teleport to an exact spot. */
+    public static String teleportToHeight(int blockX, int blockY, int blockZ) {
+        return "teleport @s " + blockX + " " + blockY + " " + blockZ;
+    }
+
     /** Moves sideways only; Y stays whatever it is now (for dimensions with no reachable surface). */
     public static String teleportKeepingHeight(int blockX, int blockZ) {
         return "teleport @s " + blockX + " ~ " + blockZ;

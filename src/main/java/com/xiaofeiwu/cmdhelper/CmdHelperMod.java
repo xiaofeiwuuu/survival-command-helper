@@ -4,6 +4,7 @@ import com.xiaofeiwu.cmdhelper.client.command.ChatResultCapture;
 import com.xiaofeiwu.cmdhelper.client.preview.FillPreview;
 import com.xiaofeiwu.cmdhelper.client.registry.RegistryDataSource;
 import com.xiaofeiwu.cmdhelper.client.screen.MainMenuScreen;
+import com.xiaofeiwu.cmdhelper.client.teleport.SafeTeleport;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -33,6 +34,7 @@ public class CmdHelperMod {
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(ChatResultCapture.class);
         MinecraftForge.EVENT_BUS.register(FillPreview.class);
+        MinecraftForge.EVENT_BUS.register(SafeTeleport.class);
     }
 
     private void registerKeyMappings(RegisterKeyMappingsEvent event) {
