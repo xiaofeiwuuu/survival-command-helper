@@ -77,6 +77,15 @@ public final class CloneCalc {
         return plan(source, source.minX() + dx, source.minY() + dy, source.minZ() + dz);
     }
 
+    /**
+     * "Move it this many blocks east / south / west / north / up / down" as an X/Y/Z shift.
+     * East is +X, south is +Z (Minecraft's own axes); opposite directions cancel.
+     * @return {dx, dy, dz}
+     */
+    public static int[] directionalOffset(int east, int south, int west, int north, int up, int down) {
+        return new int[]{east - west, up - down, south - north};
+    }
+
     /** The trailing "[replace|masked] [force|move]" part, or null when the defaults already say it. */
     public static String options(MaskMode mask, CloneMode mode, boolean overlaps) {
         String modeWord = switch (mode) {

@@ -84,6 +84,41 @@ class CloneCalcTest {
         assertEquals(-673, plan.source().maxZ());
     }
 
+    // ---- moving by direction -----------------------------------------------------------------------
+
+    @Test
+    void directions_mapToTheGamesAxes() {
+        assertEquals(java.util.List.of(5, 0, 0), toList(CloneCalc.directionalOffset(5, 0, 0, 0, 0, 0)));   // east  = +X
+        assertEquals(java.util.List.of(0, 0, 5), toList(CloneCalc.directionalOffset(0, 5, 0, 0, 0, 0)));   // south = +Z
+        assertEquals(java.util.List.of(-5, 0, 0), toList(CloneCalc.directionalOffset(0, 0, 5, 0, 0, 0)));  // west  = -X
+        assertEquals(java.util.List.of(0, 0, -5), toList(CloneCalc.directionalOffset(0, 0, 0, 5, 0, 0)));  // north = -Z
+        assertEquals(java.util.List.of(0, 5, 0), toList(CloneCalc.directionalOffset(0, 0, 0, 0, 5, 0)));   // up    = +Y
+        assertEquals(java.util.List.of(0, -5, 0), toList(CloneCalc.directionalOffset(0, 0, 0, 0, 0, 5)));  // down  = -Y
+    }
+
+    @Test
+    void oppositeDirectionsCancel_andSeveralAxesCombine() {
+        assertEquals(java.util.List.of(3, 2, -4), toList(CloneCalc.directionalOffset(10, 1, 7, 5, 6, 4)));
+    }
+
+    @Test
+    void moveUpBySourceHeightMinusOne_isTheNoteStackingCase() {
+        int[] o = CloneCalc.directionalOffset(0, 0, 0, 0, NOTE_SOURCE.sizeY() - 1, 0);
+        assertEquals(CloneCalc.plan(NOTE_SOURCE, -1267, 78, -684), CloneCalc.planWithOffset(NOTE_SOURCE, o[0], o[1], o[2]));
+    }
+
+    @Test
+    void moveEastBySourceWidth_sitsRightNextToTheSource_withoutOverlap() {
+        int[] o = CloneCalc.directionalOffset(NOTE_SOURCE.sizeX(), 0, 0, 0, 0, 0);
+        Plan plan = CloneCalc.planWithOffset(NOTE_SOURCE, o[0], o[1], o[2]);
+        assertFalse(plan.overlaps());
+        assertEquals(NOTE_SOURCE.maxX() + 1, plan.destination().minX());
+    }
+
+    private static java.util.List<Integer> toList(int[] a) {
+        return java.util.List.of(a[0], a[1], a[2]);
+    }
+
     // ---- overlap ---------------------------------------------------------------------------------
 
     @Test
