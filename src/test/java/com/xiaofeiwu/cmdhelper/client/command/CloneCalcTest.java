@@ -115,6 +115,52 @@ class CloneCalcTest {
         assertEquals(NOTE_SOURCE.maxX() + 1, plan.destination().minX());
     }
 
+    // ---- direction counted in whole source sizes ---------------------------------------------------
+
+    @Test
+    void oneCopyUp_isTheSourceHeight() {
+        // note source is 10 x 6 x 12: one step up = 6 blocks
+        assertEquals(java.util.List.of(0, 6, 0),
+                toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 0, 0, 0, 0, 1, 0, false)));
+    }
+
+    @Test
+    void oneCopyUp_sharingTheBoundaryLayer_isTheNoteExample() {
+        int[] o = CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 0, 0, 0, 0, 1, 0, true);
+        assertEquals(java.util.List.of(0, 5, 0), toList(o));
+        assertEquals(CloneCalc.plan(NOTE_SOURCE, -1267, 78, -684), CloneCalc.planWithOffset(NOTE_SOURCE, o[0], o[1], o[2]));
+    }
+
+    @Test
+    void eachAxisUsesItsOwnLength() {
+        assertEquals(java.util.List.of(10, 0, 0), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 1, 0, 0, 0, 0, 0, false)));
+        assertEquals(java.util.List.of(0, 0, 12), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 0, 1, 0, 0, 0, 0, false)));
+        assertEquals(java.util.List.of(-10, 0, 0), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 0, 0, 1, 0, 0, 0, false)));
+        assertEquals(java.util.List.of(0, 0, -12), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 0, 0, 0, 1, 0, 0, false)));
+        assertEquals(java.util.List.of(0, -6, 0), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 0, 0, 0, 0, 0, 1, false)));
+    }
+
+    @Test
+    void twoCopies_skipsOneSlot() {
+        assertEquals(java.util.List.of(20, 0, 0), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 2, 0, 0, 0, 0, 0, false)));
+        // sharing the boundary: two steps of (10 - 1)
+        assertEquals(java.util.List.of(18, 0, 0), toList(CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 2, 0, 0, 0, 0, 0, true)));
+    }
+
+    @Test
+    void oneCopyEast_neverOverlapsTheSource_untilBoundarySharingIsAskedFor() {
+        int[] apart = CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 1, 0, 0, 0, 0, 0, false);
+        assertFalse(CloneCalc.planWithOffset(NOTE_SOURCE, apart[0], apart[1], apart[2]).overlaps());
+        int[] shared = CloneCalc.directionalOffsetInSourceSizes(NOTE_SOURCE, 1, 0, 0, 0, 0, 0, true);
+        assertTrue(CloneCalc.planWithOffset(NOTE_SOURCE, shared[0], shared[1], shared[2]).overlaps());
+    }
+
+    @Test
+    void aOneBlockThickSource_cannotShareItsOnlyLayer_soThatStepIsZero() {
+        RegionBounds flat = RegionBounds.of("0 5 0", "9 5 9"); // 1 layer tall
+        assertEquals(java.util.List.of(0, 0, 0), toList(CloneCalc.directionalOffsetInSourceSizes(flat, 0, 0, 0, 0, 3, 0, true)));
+    }
+
     private static java.util.List<Integer> toList(int[] a) {
         return java.util.List.of(a[0], a[1], a[2]);
     }

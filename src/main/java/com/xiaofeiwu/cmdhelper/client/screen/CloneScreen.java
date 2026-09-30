@@ -29,9 +29,16 @@ public class CloneScreen extends CmdHelperScreen {
 
     private enum DestMode {MANUAL, DIRECTION}
 
+    /** What the numbers in the 东南西北上下 boxes count. */
+    private enum Unit {SOURCE_SIZE, BLOCKS}
+
     private static final Map<DestMode, String> DEST_LABELS = Map.of(
             DestMode.MANUAL, "目标：手动坐标",
             DestMode.DIRECTION, "目标：往某方向移动"
+    );
+    private static final Map<Unit, String> UNIT_LABELS = Map.of(
+            Unit.SOURCE_SIZE, "单位：源尺寸的倍数",
+            Unit.BLOCKS, "单位：格数"
     );
     private static final Map<MaskMode, String> MASK_LABELS = Map.of(
             MaskMode.REPLACE, "遮罩：全部替换",
@@ -64,6 +71,10 @@ public class CloneScreen extends CmdHelperScreen {
     private boolean sourceFromBelowFeet = true;
     private boolean sourceToBelowFeet = true;
     private boolean destinationBelowFeet = true;
+    // 1 east = one source-width east (right beside the source). Sharing the boundary layer makes each
+    // step one block shorter, so neighbouring copies share the layer where they touch.
+    private Unit unit = Unit.SOURCE_SIZE;
+    private boolean shareBoundaryLayer = false;
 
     private CoordinateFields sourceFrom;
     private CoordinateFields sourceTo;
@@ -72,6 +83,7 @@ public class CloneScreen extends CmdHelperScreen {
     private Checkbox sourceFromCheckbox;
     private Checkbox sourceToCheckbox;
     private Checkbox destinationCheckbox;
+    private Checkbox shareCheckbox;
 
     private Button executeButton;
     private long moveConfirmUntil;
@@ -107,8 +119,14 @@ public class CloneScreen extends CmdHelperScreen {
         if (destMode == DestMode.MANUAL) {
             this.destination = coordinateRow(left, 134, "destination", destinationBelowFeet, cb -> destinationCheckbox = cb);
         } else {
+            this.trackDropdown(this.addRenderableWidget(new DropdownWidget<>(left + 156, 112, 144, 18,
+                    List.of(Unit.values()), unit, UNIT_LABELS::get, this::switchUnit)));
             directionRow(left, 134);
-            quickButtonsRow(left, 156);
+            if (unit == Unit.SOURCE_SIZE) {
+                String label = "共用一层边界";
+                this.shareCheckbox = this.addRenderableWidget(new Checkbox(left, 156,
+                        this.font.width(label) + 24, 18, Component.literal(label), shareBoundaryLayer));
+            }
         }
 
         int bottom = this.height - 26;
@@ -134,6 +152,16 @@ public class CloneScreen extends CmdHelperScreen {
         if (destinationCheckbox != null) {
             destinationBelowFeet = destinationCheckbox.selected();
         }
+        if (shareCheckbox != null) {
+            shareBoundaryLayer = shareCheckbox.selected();
+        }
+    }
+
+    private void switchUnit(Unit next) {
+        rememberCheckboxes();
+        this.unit = next;
+        // The boundary checkbox only exists for the "multiples of the source" unit, so rebuild.
+        this.rebuildWidgets();
     }
 
     private void switchDestMode(DestMode next) {
@@ -144,6 +172,8 @@ public class CloneScreen extends CmdHelperScreen {
         screen.sourceFromBelowFeet = this.sourceFromBelowFeet;
         screen.sourceToBelowFeet = this.sourceToBelowFeet;
         screen.destinationBelowFeet = this.destinationBelowFeet;
+        screen.unit = this.unit;
+        screen.shareBoundaryLayer = this.shareBoundaryLayer;
         passInputsTo(screen);
         this.minecraft.setScreen(screen);
     }
@@ -189,44 +219,6 @@ public class CloneScreen extends CmdHelperScreen {
         }
     }
 
-    /** One-click fills for the common cases, sized from the source area (needs both corners filled in). */
-    private void quickButtonsRow(int left, int y) {
-        int x = left;
-        x = quickButton(x, y, 40, "上叠", UP, false);
-        x = quickButton(x, y, 62, "共用底层", UP, true);
-        x = quickButton(x, y, 40, "贴东", EAST, false);
-        x = quickButton(x, y, 40, "贴南", SOUTH, false);
-        x = quickButton(x, y, 40, "贴西", WEST, false);
-        quickButton(x, y, 40, "贴北", NORTH, false);
-    }
-
-    private int quickButton(int x, int y, int width, String label, int direction, boolean shareOneLayer) {
-        this.addRenderableWidget(Button.builder(Component.literal(label), b -> fillDirection(direction, shareOneLayer))
-                .bounds(x, y, width, 18).build());
-        return x + width + 4;
-    }
-
-    /**
-     * "Sit right next to the source" in a direction: move by the source's size along that axis.
-     * shareOneLayer moves one less, so the top layer of the source is also the bottom layer of the
-     * copy — the note's example copies floor 73~78 to 78~83 that way.
-     */
-    private void fillDirection(int direction, boolean shareOneLayer) {
-        if (!sourceFrom.isComplete() || !sourceTo.isComplete()) {
-            return;
-        }
-        RegionBounds source = RegionBounds.of(sourceFrom.coordString(), sourceTo.coordString());
-        int size = switch (direction) {
-            case EAST, WEST -> source.sizeX();
-            case NORTH, SOUTH -> source.sizeZ();
-            default -> source.sizeY();
-        };
-        for (EditBox box : directionBoxes) {
-            box.setValue("");
-        }
-        directionBoxes[direction].setValue(String.valueOf(size - (shareOneLayer ? 1 : 0)));
-    }
-
     private static int amount(EditBox box) {
         try {
             return box.getValue().isEmpty() ? 0 : Integer.parseInt(box.getValue());
@@ -261,11 +253,19 @@ public class CloneScreen extends CmdHelperScreen {
             int[] d = ints(destination);
             plan = CloneCalc.plan(source, d[0], d[1], d[2]);
         } else {
-            int[] o = CloneCalc.directionalOffset(
-                    amount(directionBoxes[EAST]), amount(directionBoxes[SOUTH]), amount(directionBoxes[WEST]),
-                    amount(directionBoxes[NORTH]), amount(directionBoxes[UP]), amount(directionBoxes[DOWN]));
+            int east = amount(directionBoxes[EAST]);
+            int south = amount(directionBoxes[SOUTH]);
+            int west = amount(directionBoxes[WEST]);
+            int north = amount(directionBoxes[NORTH]);
+            int up = amount(directionBoxes[UP]);
+            int down = amount(directionBoxes[DOWN]);
+            int[] o = unit == Unit.SOURCE_SIZE
+                    ? CloneCalc.directionalOffsetInSourceSizes(source, east, south, west, north, up, down, shareBoundaryLayer)
+                    : CloneCalc.directionalOffset(east, south, west, north, up, down);
             if (o[0] == 0 && o[1] == 0 && o[2] == 0) {
-                return Result.problem("还没填往哪个方向移动多少格（东南西北上下，或点下面的「贴东」「上叠」等）");
+                return Result.problem(unit == Unit.SOURCE_SIZE
+                        ? "还没填往哪个方向移动几个源尺寸（东南西北上下，填 1 = 紧挨着源区域）"
+                        : "还没填往哪个方向移动多少格（东南西北上下）");
             }
             plan = CloneCalc.planWithOffset(source, o[0], o[1], o[2]);
         }
@@ -352,7 +352,8 @@ public class CloneScreen extends CmdHelperScreen {
             for (int i = 0; i < 6; i++) {
                 g.drawString(this.font, DIRECTION_LABELS[i], left + i * DIRECTION_STRIDE, 139, COLOR_MUTED, false);
             }
-            g.drawString(this.font, "东=X+  南=Z+  西=X-  北=Z-", left + 156, 117, COLOR_MUTED, false);
+            int hintX = unit == Unit.SOURCE_SIZE ? left + 124 : left;
+            g.drawString(this.font, "东=X+  南=Z+  西=X-  北=Z-", hintX, 161, COLOR_MUTED, false);
         }
 
         if (executeButton != null) {
@@ -368,21 +369,23 @@ public class CloneScreen extends CmdHelperScreen {
             return;
         }
         RegionBounds s = RegionBounds.of(sourceFrom.coordString(), sourceTo.coordString());
-        g.drawString(this.font, ellipsize("源区域  X " + range(s.minX(), s.maxX()) + " (" + s.sizeX() + ")  Y "
-                + range(s.minY(), s.maxY()) + " (" + s.sizeY() + ")  Z " + range(s.minZ(), s.maxZ()) + " ("
-                + s.sizeZ() + ")", 300), left, y, COLOR_TEXT, false);
+        g.drawString(this.font, ellipsize("源区域  X " + range(s.minX(), s.maxX()) + "  Y " + range(s.minY(), s.maxY())
+                + "  Z " + range(s.minZ(), s.maxZ()), 300), left, y, COLOR_TEXT, false);
+        // Lengths are inclusive: |end - start| + 1. In "multiples of the source" mode these are the
+        // units the direction boxes count in, so they're spelled out.
+        g.drawString(this.font, ellipsize("长度  X " + s.sizeX() + "   Y " + s.sizeY() + "   Z " + s.sizeZ()
+                + "   （共 " + s.volume() + " 格，差值+1）", 300), left, y + 10, COLOR_ACCENT, false);
 
         Result r = compute();
         if (r.problem() != null) {
-            g.drawString(this.font, "共 " + s.volume() + " 格", left, y + 10, COLOR_MUTED, false);
             return;
         }
         RegionBounds d = r.plan().destination();
-        g.drawString(this.font, ellipsize("共 " + s.volume() + " 格    目标起点 (" + d.minX() + ", " + d.minY() + ", "
-                + d.minZ() + ")", 300), left, y + 10, COLOR_MUTED, false);
+        g.drawString(this.font, ellipsize("目标起点 (" + d.minX() + ", " + d.minY() + ", " + d.minZ() + ")", 300),
+                left, y + 20, COLOR_MUTED, false);
         boolean overlaps = r.plan().overlaps();
         g.drawString(this.font, ellipsize("复制后  X " + range(d.minX(), d.maxX()) + "  Y " + range(d.minY(), d.maxY())
                 + "  Z " + range(d.minZ(), d.maxZ()) + (overlaps ? "  （与源重叠）" : ""), 300),
-                left, y + 20, overlaps ? COLOR_WARNING : COLOR_MUTED, false);
+                left, y + 30, overlaps ? COLOR_WARNING : COLOR_MUTED, false);
     }
 }

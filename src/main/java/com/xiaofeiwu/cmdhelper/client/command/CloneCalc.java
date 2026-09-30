@@ -86,6 +86,22 @@ public final class CloneCalc {
         return new int[]{east - west, up - down, south - north};
     }
 
+    /**
+     * Same as {@link #directionalOffset} but each number counts whole copies of the source instead of
+     * blocks: 1 east = one source-width east, so the copy sits right beside the source; 2 skips one slot.
+     * The lengths are the inclusive ones (difference + 1). With {@code shareBoundaryLayer} each step is
+     * one block shorter, so neighbouring copies share their touching layer (a floor that is both the top
+     * of one storey and the bottom of the next).
+     */
+    public static int[] directionalOffsetInSourceSizes(RegionBounds source, int east, int south, int west, int north,
+                                                       int up, int down, boolean shareBoundaryLayer) {
+        int share = shareBoundaryLayer ? 1 : 0;
+        int stepX = Math.max(0, source.sizeX() - share);
+        int stepY = Math.max(0, source.sizeY() - share);
+        int stepZ = Math.max(0, source.sizeZ() - share);
+        return directionalOffset(east * stepX, south * stepZ, west * stepX, north * stepZ, up * stepY, down * stepY);
+    }
+
     /** The trailing "[replace|masked] [force|move]" part, or null when the defaults already say it. */
     public static String options(MaskMode mask, CloneMode mode, boolean overlaps) {
         String modeWord = switch (mode) {
