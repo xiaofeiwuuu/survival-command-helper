@@ -111,6 +111,14 @@ class CoordinateParserTest {
     }
 
     @Test
+    void shiftedY_movesOnlyY() {
+        // The main menu's copy button gives the block the player's feet are in (Y 91 when standing on
+        // block 90); "the block under my feet" is that minus one.
+        assertEquals(new Coordinates(104, 90, 134), p("104 91 134").orElseThrow().shiftedY(-1));
+        assertEquals(new Coordinates(104, 91, 134), p("104 91 134").orElseThrow().shiftedY(0));
+    }
+
+    @Test
     void aNumberGluedToLettersStillCounts() {
         assertEquals(EXPECTED, p("x10y64z-5"));
     }

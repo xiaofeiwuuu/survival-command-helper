@@ -27,6 +27,11 @@ public final class CoordinateParser {
     }
 
     public record Coordinates(int x, int y, int z) {
+
+        /** The same position moved up (or, negative, down) by dy blocks. */
+        public Coordinates shiftedY(int dy) {
+            return new Coordinates(x, y + dy, z);
+        }
     }
 
     public static Optional<Coordinates> parse(String text) {

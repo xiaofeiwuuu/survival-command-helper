@@ -42,6 +42,16 @@ public final class CoordinateFields {
      * The copy-coordinates button on the main menu produces exactly this kind of text.
      */
     public EditBox createPasteBox(Font font, int x, int y, int width, int height) {
+        return createPasteBox(font, x, y, width, height, () -> false);
+    }
+
+    /**
+     * @param belowFeet asked at paste time: true means the pasted position is where the player's feet
+     *                  are, so Y is lowered by one to the block they stand on — the same thing the
+     *                  "Y-1" tick does for the 用当前 button. The copy-coordinates button on the main
+     *                  menu copies the feet position, so without this a pasted floor was always missed.
+     */
+    public EditBox createPasteBox(Font font, int x, int y, int width, int height, java.util.function.BooleanSupplier belowFeet) {
         EditBox box = new EditBox(font, x, y, width, height, Component.literal("粘贴坐标"));
         box.setMaxLength(96);
         box.setHint(Component.literal("粘贴坐标"));
@@ -52,7 +62,8 @@ public final class CoordinateFields {
             }
             var parsed = CoordinateParser.parse(text);
             if (parsed.isPresent()) {
-                setAll(parsed.get().x(), parsed.get().y(), parsed.get().z());
+                var c = parsed.get().shiftedY(belowFeet.getAsBoolean() ? -1 : 0);
+                setAll(c.x(), c.y(), c.z());
                 box.setValue("");
             } else {
                 box.setTextColor(0xFF6B6B);

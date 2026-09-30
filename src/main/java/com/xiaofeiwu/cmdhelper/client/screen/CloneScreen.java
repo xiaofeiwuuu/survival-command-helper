@@ -269,13 +269,19 @@ public class CloneScreen extends CmdHelperScreen {
 
         // Row: [x][y][z] [paste] [用当前] [☐Y-1]. "Y-1" is short on purpose so the whole row still fits
         // beside the history column; it means "the block under the player's feet".
+        // The tick applies to both ways of filling the row from the player's position: 用当前, and
+        // pasting the main menu's copied coordinates (which are the feet block). Typing into the
+        // boxes is always taken literally.
+        Checkbox[] tick = new Checkbox[1];
         int pasteX = left + LABEL_W + GROUP_W + 4;
-        this.addRenderableWidget(fields.createPasteBox(this.font, pasteX, y, 60, 18));
+        this.addRenderableWidget(fields.createPasteBox(this.font, pasteX, y, 60, 18,
+                () -> tick[0] != null && tick[0].selected()));
 
         int currentX = pasteX + 60 + 4;
         String label = "Y-1";
         Checkbox checkbox = this.addRenderableWidget(new Checkbox(currentX + 46 + 4, y,
                 this.font.width(label) + 24, 18, Component.literal(label), belowFeet));
+        tick[0] = checkbox;
         checkboxOut.accept(checkbox);
 
         this.addRenderableWidget(Button.builder(Component.literal("用当前"), b -> {
