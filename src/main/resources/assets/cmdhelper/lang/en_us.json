@@ -1,0 +1,31 @@
+{
+  "key.categories.cmdhelper": "Survival Command Helper",
+  "key.cmdhelper.open_menu": "Open Command Helper",
+
+  "screen.cmdhelper.main.title": "Survival Command Helper",
+  "screen.cmdhelper.give.title": "Give Item /give",
+  "screen.cmdhelper.kill.title": "Kill Entities /kill",
+  "screen.cmdhelper.gamemode.title": "Game Mode /gamemode",
+
+  "gui.cmdhelper.op.give": "Give Item",
+  "gui.cmdhelper.op.kill": "Kill Entities",
+  "gui.cmdhelper.op.kill_hostile": "Clear Hostiles",
+  "gui.cmdhelper.op.tp": "Teleport",
+  "gui.cmdhelper.op.fill": "Fill Blocks",
+  "gui.cmdhelper.op.setblock": "Set Block",
+  "gui.cmdhelper.op.summon": "Summon Entity",
+  "gui.cmdhelper.op.environment": "Weather & Time",
+  "gui.cmdhelper.op.gamemode": "Game Mode",
+  "gui.cmdhelper.op.locate": "Locate",
+  "gui.cmdhelper.op.forceload": "Force Load Chunks",
+  "gui.cmdhelper.op.history": "History",
+  "gui.cmdhelper.op.favorites": "Favorites",
+  "gui.cmdhelper.copy_coords": "Copy Coordinates",
+
+  "gui.cmdhelper.target": "Target",
+  "gui.cmdhelper.mode": "Mode",
+  "gui.cmdhelper.search_item": "Search Item",
+  "gui.cmdhelper.count": "Count",
+  "gui.cmdhelper.execute": "Execute",
+  "gui.cmdhelper.copy": "Copy Command"
+}

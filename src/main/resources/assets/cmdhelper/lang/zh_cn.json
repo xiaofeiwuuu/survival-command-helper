@@ -1,0 +1,31 @@
+{
+  "key.categories.cmdhelper": "生存指令助手",
+  "key.cmdhelper.open_menu": "打开指令助手",
+
+  "screen.cmdhelper.main.title": "生存指令助手",
+  "screen.cmdhelper.give.title": "获取物品 /give",
+  "screen.cmdhelper.kill.title": "杀死生物 /kill",
+  "screen.cmdhelper.gamemode.title": "切换游戏模式 /gamemode",
+
+  "gui.cmdhelper.op.give": "获取物品",
+  "gui.cmdhelper.op.kill": "杀死生物",
+  "gui.cmdhelper.op.kill_hostile": "清除敌对生物",
+  "gui.cmdhelper.op.tp": "传送",
+  "gui.cmdhelper.op.fill": "填充方块",
+  "gui.cmdhelper.op.setblock": "放置方块",
+  "gui.cmdhelper.op.summon": "召唤生物",
+  "gui.cmdhelper.op.environment": "天气与时间",
+  "gui.cmdhelper.op.gamemode": "游戏模式",
+  "gui.cmdhelper.op.locate": "查找坐标",
+  "gui.cmdhelper.op.forceload": "强制加载区块",
+  "gui.cmdhelper.op.history": "历史记录",
+  "gui.cmdhelper.op.favorites": "收藏指令",
+  "gui.cmdhelper.copy_coords": "复制坐标",
+
+  "gui.cmdhelper.target": "目标",
+  "gui.cmdhelper.mode": "方式",
+  "gui.cmdhelper.search_item": "搜索物品",
+  "gui.cmdhelper.count": "数量",
+  "gui.cmdhelper.execute": "执行",
+  "gui.cmdhelper.copy": "复制命令"
+}
