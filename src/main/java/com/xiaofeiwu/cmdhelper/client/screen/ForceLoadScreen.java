@@ -4,6 +4,7 @@ import com.xiaofeiwu.cmdhelper.client.command.CommandBuilders;
 import com.xiaofeiwu.cmdhelper.client.command.CommandExecutor;
 import com.xiaofeiwu.cmdhelper.client.forceload.ForceLoadService;
 import com.xiaofeiwu.cmdhelper.client.forceload.ForceLoadedChunks.Chunk;
+import com.xiaofeiwu.cmdhelper.client.teleport.SafeTeleport;
 import com.xiaofeiwu.cmdhelper.client.widget.ChunkListWidget;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import net.minecraft.client.gui.GuiGraphics;
@@ -149,14 +150,9 @@ public class ForceLoadScreen extends CmdHelperScreen {
     }
 
     private void teleportTo(Chunk chunk) {
-        var level = this.minecraft.level;
-        // Under a bedrock ceiling (the Nether) the "surface" is the roof, so there we only move
-        // sideways and keep the player's height; everywhere else the server finds the ground.
-        boolean hasCeiling = level != null && level.dimensionType().hasCeiling();
-        String command = hasCeiling
-                ? CommandBuilders.teleportKeepingHeight(chunk.centerBlockX(), chunk.centerBlockZ())
-                : CommandBuilders.teleportToSurface(chunk.centerBlockX(), chunk.centerBlockZ());
-        CommandExecutor.execute(command);
+        // Force-loaded chunks are always loaded on the server, so the surface teleport normally works
+        // on the first try; SafeTeleport also handles the Nether (no ground to look up) and retries.
+        SafeTeleport.toColumn(chunk.centerBlockX(), chunk.centerBlockZ());
         this.minecraft.setScreen(null);
     }
 

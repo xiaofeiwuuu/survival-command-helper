@@ -61,11 +61,26 @@ public final class ChatResultCapture {
         keyedCallback = null;
     }
 
+    /**
+     * Whether a message is, or contains, a translatable component whose key is in {@code keys}.
+     * It has to look inside: the server sends every failure as {@code Component.empty().append(message)
+     * .withStyle(RED)}, so for those the translatable part is a child, never the outermost component.
+     */
+    static boolean containsKey(Component message, Set<String> keys) {
+        if (message.getContents() instanceof TranslatableContents translatable && keys.contains(translatable.getKey())) {
+            return true;
+        }
+        for (Component sibling : message.getSiblings()) {
+            if (containsKey(sibling, keys)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @SubscribeEvent
     public static void onSystemChat(ClientChatReceivedEvent.System event) {
-        if (keyedCallback != null && !event.isOverlay()
-                && event.getMessage().getContents() instanceof TranslatableContents translatable
-                && keyedKeys.contains(translatable.getKey())) {
+        if (keyedCallback != null && !event.isOverlay() && containsKey(event.getMessage(), keyedKeys)) {
             Consumer<Component> callback = keyedCallback;
             boolean hide = keyedHidesMessage;
             cancelKeyed();
