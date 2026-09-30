@@ -24,6 +24,9 @@ public class HistoryScreen extends CmdHelperScreen {
     private Tab tab;
     private SimpleListWidget list;
     private Button favoriteButton;
+    private Button clearButton;
+    private long clearConfirmUntil;
+    private static final long CONFIRM_WINDOW_MILLIS = 3000;
 
     public static HistoryScreen favorites(Screen parent) {
         return new HistoryScreen(parent, Tab.FAVORITES);
@@ -64,6 +67,17 @@ public class HistoryScreen extends CmdHelperScreen {
         this.addRenderableWidget(Button.builder(Component.literal("▶"), b -> list.nextPage())
                 .bounds(centerX + 40, pageY, 20, 16).build());
 
+        if (tab == Tab.HISTORY) {
+            // Only the history tab: favorites are ones the player chose to keep, so they get no
+            // "clear all" (each can still be un-starred one by one).
+            tip(this.addRenderableWidget(Button.builder(Component.literal("删除选中"), b -> deleteSelected())
+                    .bounds(centerX - 150, pageY, 76, 16).build()),
+                    "把选中的这一条从历史里删掉\n（已收藏的不受影响）");
+            this.clearButton = tip(this.addRenderableWidget(Button.builder(Component.literal("清空历史"), b -> clearAll())
+                    .bounds(centerX + 74, pageY, 76, 16).build()),
+                    "清空全部历史记录\n收藏的指令不会被清掉。\n3 秒内点两次才会执行。");
+        }
+
         this.addRenderableWidget(Button.builder(Component.translatable("gui.cmdhelper.execute"), b -> {
             String cmd = list.getSelected();
             if (cmd != null) {
@@ -89,6 +103,29 @@ public class HistoryScreen extends CmdHelperScreen {
             }
         }).bounds(centerX + 40, this.height - 26, 110, 18).build();
         this.addRenderableWidget(this.favoriteButton);
+    }
+
+    private void deleteSelected() {
+        String cmd = list.getSelected();
+        if (cmd == null) {
+            return;
+        }
+        CommandHistoryStore.removeFromHistory(cmd);
+        list.setItems(CommandHistoryStore.history());
+        favoriteButton.setMessage(Component.literal(favoriteLabel()));
+    }
+
+    /** It can't be undone, so: two clicks within a few seconds. */
+    private void clearAll() {
+        long now = System.currentTimeMillis();
+        if (now > clearConfirmUntil) {
+            clearConfirmUntil = now + CONFIRM_WINDOW_MILLIS;
+            return;
+        }
+        clearConfirmUntil = 0;
+        CommandHistoryStore.clearHistory();
+        list.setItems(CommandHistoryStore.history());
+        favoriteButton.setMessage(Component.literal(favoriteLabel()));
     }
 
     private String favoriteLabel() {
@@ -138,6 +175,9 @@ public class HistoryScreen extends CmdHelperScreen {
         String label = "第 " + (list.currentPage() + 1) + " / " + list.totalPages() + " 页";
         int listTop = 68;
         guiGraphics.drawCenteredString(this.font, label, this.width / 2, listTop + list.pixelHeight() + 10, COLOR_MUTED);
+        if (clearButton != null) {
+            clearButton.setMessage(Component.literal(System.currentTimeMillis() < clearConfirmUntil ? "再点确认" : "清空历史"));
+        }
         String selected = list.getSelected();
         if (selected == null) {
             guiGraphics.drawCenteredString(this.font, "点一条指令来选中它，再执行/复制/收藏", this.width / 2, this.height - 40, COLOR_MUTED);

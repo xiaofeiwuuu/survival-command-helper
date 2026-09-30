@@ -100,6 +100,8 @@ public class CloneScreen extends CmdHelperScreen {
     private CloneHistoryList history;
     private int historyLeft;
     private int historyPageY;
+    private Button historyClearButton;
+    private long historyClearConfirmUntil;
 
     // A short message ("no source", "too big to clear at once") shown for a couple of seconds.
     private String flashText = "";
@@ -190,6 +192,22 @@ public class CloneScreen extends CmdHelperScreen {
                 .bounds(historyLeft + HISTORY_WIDTH / 2 - 44, historyPageY, 20, 16).build());
         this.addRenderableWidget(Button.builder(Component.literal("▶"), b -> history.nextPage())
                 .bounds(historyLeft + HISTORY_WIDTH / 2 + 24, historyPageY, 20, 16).build());
+
+        // Beside the column's title. Two clicks: it can't be undone (it only forgets the list — no
+        // block in the world is touched).
+        this.historyClearButton = tip(this.addRenderableWidget(Button.builder(Component.literal("清空"), b -> clearHistory())
+                .bounds(historyLeft + HISTORY_WIDTH - 44, 33, 44, 14).build()),
+                "清空复制历史\n只是忘掉这个列表，不会动世界里的任何方块。\n3 秒内点两次才会执行。");
+    }
+
+    private void clearHistory() {
+        long now = System.currentTimeMillis();
+        if (now > historyClearConfirmUntil) {
+            historyClearConfirmUntil = now + CONFIRM_WINDOW_MILLIS;
+            return;
+        }
+        historyClearConfirmUntil = 0;
+        CloneHistoryStore.shared().clear();
     }
 
     /**
@@ -534,6 +552,9 @@ public class CloneScreen extends CmdHelperScreen {
         history.setCommands(CloneHistoryStore.shared().commands()); // picks up a clone that was just executed
         g.vLine(historyLeft - 6, HEADER_HEIGHT + 2, this.height, COLOR_BORDER);
         g.drawString(this.font, "复制历史（点击填入）", historyLeft, 38, COLOR_ACCENT, false);
+        if (historyClearButton != null) {
+            historyClearButton.setMessage(Component.literal(System.currentTimeMillis() < historyClearConfirmUntil ? "确认?" : "清空"));
+        }
         history.render(g, mouseX, mouseY);
         g.drawCenteredString(this.font, (history.currentPage() + 1) + "/" + history.totalPages(),
                 historyLeft + HISTORY_WIDTH / 2, historyPageY + 4, COLOR_MUTED);
