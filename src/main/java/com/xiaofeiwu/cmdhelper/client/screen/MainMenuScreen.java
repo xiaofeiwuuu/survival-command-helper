@@ -42,7 +42,7 @@ public class MainMenuScreen extends CmdHelperScreen {
         return Math.max(10, (this.height - contentHeight) / 2);
     }
 
-    /** Every button in the grid, row by row, left to right. Append new features at the end. */
+    /** Every button in the grid, row by row, left to right. New features go just above the two history buttons. */
     private List<Entry> entries() {
         return List.of(
                 new Entry("gui.cmdhelper.op.give", () -> minecraft.setScreen(new GiveScreen(this))),
@@ -64,11 +64,11 @@ public class MainMenuScreen extends CmdHelperScreen {
 
                 new Entry("gui.cmdhelper.op.locate", () -> minecraft.setScreen(new LocateScreen(this))),
                 new Entry("gui.cmdhelper.op.forceload", () -> minecraft.setScreen(new ForceLoadScreen(this))),
-                new Entry("gui.cmdhelper.op.history", () -> minecraft.setScreen(new HistoryScreen(this))),
+                new Entry("gui.cmdhelper.op.clone", () -> minecraft.setScreen(new CloneScreen(this))),
 
+                // The two "look back" buttons stay last: put new features above this line.
                 new Entry("gui.cmdhelper.op.favorites", () -> minecraft.setScreen(HistoryScreen.favorites(this))),
-
-                new Entry("gui.cmdhelper.op.clone", () -> minecraft.setScreen(new CloneScreen(this)))
+                new Entry("gui.cmdhelper.op.history", () -> minecraft.setScreen(new HistoryScreen(this)))
         );
     }
 
