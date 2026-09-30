@@ -64,6 +64,10 @@ class CommandDescriberTest {
                 CommandBuilders.fill("0 64 0", "9 66 9", "minecraft:stone", "replace"),
                 CommandBuilders.fill("0 64 0", "9 66 9", "minecraft:stone", "replace minecraft:dirt"),
                 CommandBuilders.fill("0 64 0", "9 66 9", "minecraft:stone", "hollow"),
+                CommandBuilders.clone("0 0 0", "9 5 11", "20 0 0", null),
+                CommandBuilders.clone("0 0 0", "9 5 11", "20 0 0", "masked"),
+                CommandBuilders.clone("0 0 0", "9 5 11", "0 5 0", "replace force"),
+                CommandBuilders.clone("0 0 0", "9 5 11", "20 0 0", "replace move"),
                 CommandBuilders.setBlock("1 2 3", "minecraft:stone", null),
                 CommandBuilders.setBlock("1 2 3", "minecraft:stone", "keep"),
                 CommandBuilders.teleportSelfToCoords("1 2 3"),
@@ -152,6 +156,37 @@ class CommandDescriberTest {
         assertEquals("把 自己 传送到玩家 Steve 身边", d("teleport @s Steve"));
         assertEquals("把 Steve 传送到玩家 Alex 身边", d("teleport Steve Alex"));
         assertEquals("把 Steve 传送到 (-4, 70, 12)", d("teleport Steve -4 70 12"));
+    }
+
+    @Test
+    void clone_describesSizeTargetAndMode() {
+        assertEquals("复制 (-1267, 73, -684) → (-1258, 78, -673)（10×6×12，共 720 格）到起点 (-1267, 78, -684)，"
+                        + "复制后占 Y 78~83，替换目标方块，强制（允许重叠）",
+                d("clone -1267 73 -684 -1258 78 -673 -1267 78 -684 replace force"));
+    }
+
+    @Test
+    void clone_reversedCornersAreDescribedNormalised() {
+        assertEquals(d("clone 0 0 0 9 5 11 20 0 0"), d("clone 9 5 11 0 0 0 20 0 0"));
+    }
+
+    @Test
+    void clone_withoutOptions_hasNoModeText() {
+        String text = d("clone 0 0 0 9 5 11 20 0 0");
+        assertTrue(text.endsWith("复制后占 Y 0~5"), text);
+    }
+
+    @Test
+    void clone_maskedAndMove() {
+        assertTrue(d("clone 0 0 0 1 1 1 5 5 5 masked").contains("只复制非空气方块"));
+        assertTrue(d("clone 0 0 0 1 1 1 5 5 5 replace move").contains("源区域会被清除"));
+    }
+
+    @Test
+    void clone_malformedIsNotGuessedAt() {
+        assertNull(d("clone 0 0 0 1 1 1 5 5"));
+        assertNull(d("clone 0 0 0 1 1 1 5 5 5 nonsense"));
+        assertNull(d("clone a b c 1 1 1 5 5 5"));
     }
 
     @Test

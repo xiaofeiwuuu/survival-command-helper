@@ -113,11 +113,6 @@ public class HistoryScreen extends CmdHelperScreen {
         return list.mouseScrolled(mouseX, mouseY, delta);
     }
 
-    private String ellipsize(String text, int maxWidth) {
-        return this.font.width(text) <= maxWidth ? text
-                : this.font.plainSubstrByWidth(text, maxWidth - this.font.width("…")) + "…";
-    }
-
     /** The row is one truncated line; this shows the selected command in full (wrapped), with its explanation. */
     private void renderSelectedDetail(GuiGraphics g, String command) {
         int left = this.width / 2 - 150;

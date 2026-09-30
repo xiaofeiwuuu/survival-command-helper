@@ -66,6 +66,12 @@ public final class CommandBuilders {
         return "fill " + fromCoords + " " + toCoords + " " + blockId + modePart;
     }
 
+    /** @param optionsOrNull the trailing "[replace|masked] [force|move]" text, already worded, or null */
+    public static String clone(String begin, String end, String destination, String optionsOrNull) {
+        String tail = (optionsOrNull == null || optionsOrNull.isEmpty()) ? "" : " " + optionsOrNull;
+        return "clone " + begin + " " + end + " " + destination + tail;
+    }
+
     public static String setBlock(String posCoords, String blockId, String modeOrNull) {
         String modePart = (modeOrNull == null || modeOrNull.isEmpty()) ? "" : " " + modeOrNull;
         return "setblock " + posCoords + " " + blockId + modePart;

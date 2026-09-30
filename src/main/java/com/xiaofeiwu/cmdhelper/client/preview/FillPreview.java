@@ -28,10 +28,17 @@ import java.util.function.Supplier;
 public final class FillPreview {
 
     /** One frame's worth of preview: the two corners (plain "x y z") and the command they belong to. */
-    public record Plan(String from, String to, String command) {
+    public record Plan(String from, String to, String command, String secondFrom, String secondTo, String title) {
+
+        /** The common case: one box, called "填充预览". */
+        public Plan(String from, String to, String command) {
+            this(from, to, command, null, null, "填充预览");
+        }
     }
 
     private static final float[] COLOR_OK = {0.30f, 0.85f, 1.00f};
+    // The second box (clone: where the copy will land) is green so it can't be mistaken for the source.
+    private static final float[] COLOR_SECOND = {0.35f, 0.95f, 0.45f};
     private static final float[] COLOR_TOO_BIG = {1.00f, 0.25f, 0.25f};
     private static final float FACE_ALPHA = 0.22f;
     // Grows the box a hair past the block grid so its faces don't z-fight with real blocks.
@@ -40,6 +47,7 @@ public final class FillPreview {
     private static Supplier<Plan> supplier;
     private static Plan current;
     private static RegionBounds currentBounds;
+    private static RegionBounds currentSecondBounds;
     // The action-bar text is re-sent only when it changes or is about to fade. Sending it every
     // tick meant 20 system-chat events a second for every other mod listening to them.
     private static String lastStatus;
@@ -57,6 +65,7 @@ public final class FillPreview {
         supplier = planSupplier;
         current = null;
         currentBounds = null;
+        currentSecondBounds = null;
         lastStatus = null;
     }
 
@@ -64,6 +73,7 @@ public final class FillPreview {
         supplier = null;
         current = null;
         currentBounds = null;
+        currentSecondBounds = null;
         lastStatus = null;
     }
 
@@ -79,8 +89,10 @@ public final class FillPreview {
         }
         current = supplier.get();
         currentBounds = current == null ? null : RegionBounds.of(current.from(), current.to());
+        currentSecondBounds = current == null || current.secondFrom() == null
+                ? null : RegionBounds.of(current.secondFrom(), current.secondTo());
         if (currentBounds != null && mc.screen == null) {
-            Component status = statusLine(currentBounds);
+            Component status = statusLine(current.title(), currentBounds, currentSecondBounds != null);
             String text = status.getString();
             ticksSinceStatus++;
             if (!text.equals(lastStatus) || ticksSinceStatus >= STATUS_REFRESH_TICKS) {
@@ -91,14 +103,15 @@ public final class FillPreview {
         }
     }
 
-    private static Component statusLine(RegionBounds b) {
+    private static Component statusLine(String title, RegionBounds b, boolean hasSecondBox) {
         String size = b.sizeX() + "×" + b.sizeY() + "×" + b.sizeZ() + " = " + b.volume() + " 格";
         if (b.exceedsFillLimit()) {
-            return Component.literal("填充预览 " + size + "  超过 " + RegionBounds.FILL_BLOCK_LIMIT
+            return Component.literal(title + " " + size + "  超过 " + RegionBounds.FILL_BLOCK_LIMIT
                     + " 格上限，无法确认  |  左键取消").withStyle(ChatFormatting.RED);
         }
+        String legend = hasSecondBox ? "  （蓝=源 绿=复制后）" : "";
         String permission = CommandExecutor.likelyHasPermission() ? "" : "  ⚠ 当前可能没有权限，服务器可能拒绝";
-        return Component.literal("填充预览 " + size + "  |  右键确认  ·  左键取消" + permission)
+        return Component.literal(title + " " + size + legend + "  |  右键确认  ·  左键取消" + permission)
                 .withStyle(CommandExecutor.likelyHasPermission() ? ChatFormatting.AQUA : ChatFormatting.YELLOW);
     }
 
@@ -111,7 +124,7 @@ public final class FillPreview {
             event.setCanceled(true);
             event.setSwingHand(false);
             cancel();
-            notify("已取消填充预览", ChatFormatting.GRAY);
+            notify("已取消预览", ChatFormatting.GRAY);
         } else if (event.isUseItem()) {
             event.setCanceled(true);
             event.setSwingHand(false);
@@ -144,19 +157,25 @@ public final class FillPreview {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || currentBounds == null) {
             return;
         }
-        RegionBounds b = currentBounds;
-        float[] c = b.exceedsFillLimit() ? COLOR_TOO_BIG : COLOR_OK;
-
         Vec3 cam = event.getCamera().getPosition();
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
 
+        drawBox(poseStack, buffers, cam, currentBounds,
+                currentBounds.exceedsFillLimit() ? COLOR_TOO_BIG : COLOR_OK);
+        if (currentSecondBounds != null) {
+            drawBox(poseStack, buffers, cam, currentSecondBounds, COLOR_SECOND);
+        }
+        buffers.endBatch(RenderType.lines());
+    }
+
+    private static void drawBox(PoseStack poseStack, MultiBufferSource.BufferSource buffers, Vec3 cam,
+                                RegionBounds b, float[] c) {
         AABB box = new AABB(b.minX(), b.minY(), b.minZ(), b.maxX() + 1, b.maxY() + 1, b.maxZ() + 1)
                 .inflate(INFLATE)
                 .move(-cam.x, -cam.y, -cam.z);
 
         DebugRenderer.renderFilledBox(poseStack, buffers, box, c[0], c[1], c[2], FACE_ALPHA);
         LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(RenderType.lines()), box, c[0], c[1], c[2], 1.0f);
-        buffers.endBatch(RenderType.lines());
     }
 }

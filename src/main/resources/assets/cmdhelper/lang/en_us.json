@@ -9,6 +9,7 @@
 
   "gui.cmdhelper.op.give": "Give Item",
   "gui.cmdhelper.op.kill": "Kill Entities",
+  "gui.cmdhelper.op.clone": "Clone Region",
   "gui.cmdhelper.op.kill_hostile": "Clear Hostiles",
   "gui.cmdhelper.op.tp": "Teleport",
   "gui.cmdhelper.op.fill": "Fill Blocks",

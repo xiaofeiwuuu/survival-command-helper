@@ -79,6 +79,7 @@ public final class CommandDescriber {
                 case "give" -> t.length == 4 ? give(t, names) : null;
                 case "kill" -> kill(trimmed, t, names);
                 case "fill" -> fill(t, names);
+                case "clone" -> clone(t);
                 case "setblock" -> setBlock(t, names);
                 case "teleport", "tp" -> teleport(t);
                 case "execute" -> execute(trimmed);
@@ -139,6 +140,41 @@ public final class CommandDescriber {
                 out.append("，只替换 ").append(blockWithState(t[9], names));
             } else {
                 out.append("，模式：").append(FillModeLabels.labelFor(t[8]));
+            }
+        }
+        return out.toString();
+    }
+
+    /** clone x1 y1 z1 x2 y2 z2 tx ty tz [replace|masked] [normal|force|move] */
+    private static String clone(String[] t) {
+        if (t.length < 10 || t.length > 12) {
+            return null;
+        }
+        int[] n = new int[9];
+        for (int i = 0; i < 9; i++) {
+            n[i] = Integer.parseInt(t[i + 1]);
+        }
+        RegionBounds source = RegionBounds.of(n[0] + " " + n[1] + " " + n[2], n[3] + " " + n[4] + " " + n[5]);
+        // The destination is the lowest corner of where the copy lands, with the source's size.
+        RegionBounds copy = new RegionBounds(n[6], n[7], n[8],
+                n[6] + source.sizeX() - 1, n[7] + source.sizeY() - 1, n[8] + source.sizeZ() - 1);
+        StringBuilder out = new StringBuilder("复制 ")
+                .append(coords(new int[]{source.minX(), source.minY(), source.minZ()})).append(" → ")
+                .append(coords(new int[]{source.maxX(), source.maxY(), source.maxZ()}))
+                .append("（").append(source.sizeX()).append("×").append(source.sizeY()).append("×").append(source.sizeZ())
+                .append("，共 ").append(source.volume()).append(" 格）到起点 ")
+                .append(coords(new int[]{n[6], n[7], n[8]}))
+                .append("，复制后占 Y ").append(copy.minY()).append("~").append(copy.maxY());
+        for (int i = 10; i < t.length; i++) {
+            switch (t[i]) {
+                case "replace" -> out.append("，替换目标方块");
+                case "masked" -> out.append("，只复制非空气方块");
+                case "normal" -> out.append("，普通模式");
+                case "force" -> out.append("，强制（允许重叠）");
+                case "move" -> out.append("，移动（源区域会被清除）");
+                default -> {
+                    return null;
+                }
             }
         }
         return out.toString();

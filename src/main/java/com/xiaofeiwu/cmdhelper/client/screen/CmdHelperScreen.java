@@ -287,7 +287,7 @@ public abstract class CmdHelperScreen extends Screen {
         return explanation;
     }
 
-    private String ellipsize(String text, int maxWidth) {
+    protected String ellipsize(String text, int maxWidth) {
         return this.font.width(text) <= maxWidth ? text
                 : this.font.plainSubstrByWidth(text, maxWidth - this.font.width("…")) + "…";
     }

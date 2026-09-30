@@ -31,6 +31,13 @@ public record RegionBounds(int minX, int minY, int minZ, int maxX, int maxY, int
         return maxZ - minZ + 1;
     }
 
+    /** True if the two boxes share at least one block (edges are inclusive, so touching by one layer counts). */
+    public boolean intersects(RegionBounds other) {
+        return minX <= other.maxX && maxX >= other.minX
+                && minY <= other.maxY && maxY >= other.minY
+                && minZ <= other.maxZ && maxZ >= other.minZ;
+    }
+
     public long volume() {
         return (long) sizeX() * sizeY() * sizeZ();
     }

@@ -12,6 +12,7 @@
   "gui.cmdhelper.op.kill_hostile": "清除敌对生物",
   "gui.cmdhelper.op.tp": "传送",
   "gui.cmdhelper.op.fill": "填充方块",
+  "gui.cmdhelper.op.clone": "复制区域",
   "gui.cmdhelper.op.setblock": "放置方块",
   "gui.cmdhelper.op.summon": "召唤生物",
   "gui.cmdhelper.op.environment": "天气与时间",
