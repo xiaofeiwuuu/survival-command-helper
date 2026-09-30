@@ -3,9 +3,13 @@ package com.xiaofeiwu.cmdhelper.client.screen;
 import com.xiaofeiwu.cmdhelper.client.command.CloneCalc;
 import com.xiaofeiwu.cmdhelper.client.command.CloneCalc.CloneMode;
 import com.xiaofeiwu.cmdhelper.client.command.CloneCalc.MaskMode;
+import com.xiaofeiwu.cmdhelper.client.command.CommandDescriber;
 import com.xiaofeiwu.cmdhelper.client.command.CommandExecutor;
 import com.xiaofeiwu.cmdhelper.client.command.RegionBounds;
+import com.xiaofeiwu.cmdhelper.client.history.CloneHistoryStore;
 import com.xiaofeiwu.cmdhelper.client.preview.FillPreview;
+import com.xiaofeiwu.cmdhelper.client.registry.RegistryNames;
+import com.xiaofeiwu.cmdhelper.client.widget.CloneHistoryList;
 import com.xiaofeiwu.cmdhelper.client.widget.CoordinateFields;
 import com.xiaofeiwu.cmdhelper.client.widget.DropdownWidget;
 import net.minecraft.client.gui.GuiGraphics;
@@ -86,7 +90,19 @@ public class CloneScreen extends CmdHelperScreen {
     private Checkbox shareCheckbox;
 
     private Button executeButton;
+    private Button clearButton;
     private long moveConfirmUntil;
+    private long clearConfirmUntil;
+
+    // Right-hand column of past clones. Only shown when the window is wide enough to fit it beside the form.
+    private static final int HISTORY_WIDTH = 140;
+    private CloneHistoryList history;
+    private int historyLeft;
+    private int historyPageY;
+
+    // A short message ("no source", "too big to clear at once") shown for a couple of seconds.
+    private String flashText = "";
+    private long flashUntil;
 
     public CloneScreen(Screen parent) {
         this(parent, DestMode.MANUAL);
@@ -97,12 +113,21 @@ public class CloneScreen extends CmdHelperScreen {
         this.destMode = destMode;
     }
 
+    private boolean hasHistoryColumn() {
+        return this.width >= 300 + HISTORY_WIDTH + 24;
+    }
+
+    /** Centre of the form: shifted left to make room for the history column when there is one. */
+    private int contentCenter() {
+        return hasHistoryColumn() ? (this.width - HISTORY_WIDTH - 8) / 2 : this.width / 2;
+    }
+
     @Override
     protected void init() {
         // The checkboxes are about to be rebuilt (window resize): keep what was ticked.
         rememberCheckboxes();
         super.init();
-        int centerX = this.width / 2;
+        int centerX = contentCenter();
         int left = centerX - 150;
 
         this.trackDropdown(this.addRenderableWidget(new DropdownWidget<>(left, 40, 148, 18,
@@ -130,16 +155,67 @@ public class CloneScreen extends CmdHelperScreen {
         }
 
         int bottom = this.height - 26;
+        // Four buttons across the 300-wide form: 预览 / 执行 / 复制命令 / 清除粘贴区域.
         this.addRenderableWidget(Button.builder(Component.literal("半透明预览"), b -> startInWorldPreview())
-                .bounds(centerX - 85, bottom, 90, 18).build());
+                .bounds(left, bottom, 72, 18).build());
         this.executeButton = this.addRenderableWidget(Button.builder(Component.translatable("gui.cmdhelper.execute"),
-                b -> execute()).bounds(centerX + 10, bottom, 90, 18).build());
+                b -> execute()).bounds(left + 76, bottom, 72, 18).build());
         this.addRenderableWidget(Button.builder(Component.translatable("gui.cmdhelper.copy"), b -> {
             Result r = compute();
             if (r.problem() == null) {
                 CommandExecutor.copyToClipboard(r.command());
             }
-        }).bounds(centerX + 105, bottom, 90, 18).build());
+        }).bounds(left + 152, bottom, 72, 18).build());
+        this.clearButton = this.addRenderableWidget(Button.builder(Component.literal("清除粘贴区"), b -> clearPasted())
+                .bounds(left + 228, bottom, 72, 18).build());
+
+        if (hasHistoryColumn()) {
+            initHistoryColumn();
+        } else {
+            history = null;
+        }
+    }
+
+    private void initHistoryColumn() {
+        historyLeft = this.width - HISTORY_WIDTH - 8;
+        int top = 50;
+        int rows = Math.max(1, (this.height - 8 - 22 - top) / CloneHistoryList.ROW_HEIGHT);
+        history = new CloneHistoryList(historyLeft, top, HISTORY_WIDTH, rows, this::loadFromHistory,
+                command -> CommandDescriber.describe(command, RegistryNames.INSTANCE));
+        history.setCommands(CloneHistoryStore.shared().commands());
+        historyPageY = this.height - 24;
+        this.addRenderableWidget(Button.builder(Component.literal("◀"), b -> history.prevPage())
+                .bounds(historyLeft + HISTORY_WIDTH / 2 - 44, historyPageY, 20, 16).build());
+        this.addRenderableWidget(Button.builder(Component.literal("▶"), b -> history.nextPage())
+                .bounds(historyLeft + HISTORY_WIDTH / 2 + 24, historyPageY, 20, 16).build());
+    }
+
+    /**
+     * Puts a past clone back into every field: the source corners, the destination start (as plain
+     * coordinates — that's exactly what was sent), and the two mode dropdowns. Done by building a
+     * fresh screen whose remembered inputs are these values.
+     */
+    private void loadFromHistory(CloneCalc.Parsed p) {
+        rememberCheckboxes();
+        CloneScreen screen = new CloneScreen(parent, DestMode.MANUAL);
+        screen.maskMode = p.mask();
+        screen.cloneMode = p.mode();
+        screen.sourceFromBelowFeet = this.sourceFromBelowFeet;
+        screen.sourceToBelowFeet = this.sourceToBelowFeet;
+        screen.destinationBelowFeet = this.destinationBelowFeet;
+        screen.unit = this.unit;
+        screen.shareBoundaryLayer = this.shareBoundaryLayer;
+        RegionBounds s = p.source();
+        screen.saveState("sourceFrom.x", String.valueOf(s.minX()));
+        screen.saveState("sourceFrom.y", String.valueOf(s.minY()));
+        screen.saveState("sourceFrom.z", String.valueOf(s.minZ()));
+        screen.saveState("sourceTo.x", String.valueOf(s.maxX()));
+        screen.saveState("sourceTo.y", String.valueOf(s.maxY()));
+        screen.saveState("sourceTo.z", String.valueOf(s.maxZ()));
+        screen.saveState("destination.x", String.valueOf(p.destX()));
+        screen.saveState("destination.y", String.valueOf(p.destY()));
+        screen.saveState("destination.z", String.valueOf(p.destZ()));
+        this.minecraft.setScreen(screen);
     }
 
     private void rememberCheckboxes() {
@@ -275,6 +351,10 @@ public class CloneScreen extends CmdHelperScreen {
 
     @Override
     protected Preview preview() {
+        // A message from a button (e.g. "nothing to clear") takes over the preview line for a moment.
+        if (System.currentTimeMillis() < flashUntil) {
+            return Preview.problem(flashText);
+        }
         Result r = compute();
         if (r.problem() != null) {
             return Preview.problem(r.problem());
@@ -300,6 +380,48 @@ public class CloneScreen extends CmdHelperScreen {
             moveConfirmUntil = 0;
         }
         CommandExecutor.execute(r.command());
+    }
+
+    private void flash(String text) {
+        flashText = text;
+        flashUntil = System.currentTimeMillis() + 3500;
+    }
+
+    /**
+     * Wipes what the current fields would paste (or did paste): the destination area, minus the source
+     * area, filled with air. Asks twice — it can't be undone, and the blocks that were there before the
+     * paste are not brought back, only cleared. Uses whatever the fields say now, so load the clone from
+     * the history first to clear an older one.
+     */
+    private void clearPasted() {
+        Result r = compute();
+        if (r.problem() != null) {
+            flash("先填好源区域和目标，才知道要清除哪一块");
+            return;
+        }
+        List<RegionBounds> boxes = CloneCalc.clearBoxes(r.plan());
+        if (boxes.isEmpty()) {
+            flash("目标区域完全在源区域里面，没有可清除的部分");
+            return;
+        }
+        for (RegionBounds box : boxes) {
+            if (box.exceedsFillLimit()) {
+                flash("要清除的一块有 " + box.volume() + " 格，超过 " + RegionBounds.FILL_BLOCK_LIMIT + "，一条命令清不掉");
+                return;
+            }
+        }
+        long now = System.currentTimeMillis();
+        if (now > clearConfirmUntil) {
+            clearConfirmUntil = now + CONFIRM_WINDOW_MILLIS;
+            return;
+        }
+        clearConfirmUntil = 0;
+        List<String> commands = CloneCalc.clearCommands(r.plan());
+        if (commands.size() == 1) {
+            CommandExecutor.execute(commands.get(0));
+        } else {
+            CommandExecutor.executeBatch(commands, "清除粘贴区域（" + commands.size() + " 条 fill，保留与源重叠的部分）");
+        }
     }
 
     private void startInWorldPreview() {
@@ -335,7 +457,7 @@ public class CloneScreen extends CmdHelperScreen {
 
     @Override
     protected void renderExtra(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        int left = this.width / 2 - 150;
+        int left = contentCenter() - 150;
         // In the title bar, right-aligned: the directions below are compass directions, so say which
         // one the player is looking along.
         var player = this.minecraft.player;
@@ -356,11 +478,41 @@ public class CloneScreen extends CmdHelperScreen {
             g.drawString(this.font, "东=X+  南=Z+  西=X-  北=Z-", hintX, 161, COLOR_MUTED, false);
         }
 
+        long now = System.currentTimeMillis();
         if (executeButton != null) {
-            boolean confirming = cloneMode == CloneMode.MOVE && System.currentTimeMillis() < moveConfirmUntil;
-            executeButton.setMessage(Component.literal(confirming ? "再点确认移动" : "执行"));
+            boolean confirming = cloneMode == CloneMode.MOVE && now < moveConfirmUntil;
+            executeButton.setMessage(Component.literal(confirming ? "再点确认" : "执行"));
+        }
+        if (clearButton != null) {
+            clearButton.setMessage(Component.literal(now < clearConfirmUntil ? "再点确认" : "清除粘贴区"));
         }
         renderChecklist(g, left, destMode == DestMode.MANUAL ? 160 : 182);
+        renderHistoryColumn(g, mouseX, mouseY);
+    }
+
+    private void renderHistoryColumn(GuiGraphics g, int mouseX, int mouseY) {
+        if (history == null) {
+            return;
+        }
+        history.setCommands(CloneHistoryStore.shared().commands()); // picks up a clone that was just executed
+        g.vLine(historyLeft - 6, HEADER_HEIGHT + 2, this.height, COLOR_BORDER);
+        g.drawString(this.font, "复制历史（点击填入）", historyLeft, 38, COLOR_ACCENT, false);
+        history.render(g, mouseX, mouseY);
+        g.drawCenteredString(this.font, (history.currentPage() + 1) + "/" + history.totalPages(),
+                historyLeft + HISTORY_WIDTH / 2, historyPageY + 4, COLOR_MUTED);
+        if (!isAnyDropdownOpen()) {
+            history.renderTooltip(g, mouseX, mouseY);
+        }
+    }
+
+    @Override
+    protected boolean onExtraMouseClicked(double mouseX, double mouseY, int button) {
+        return history != null && history.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    protected boolean onExtraMouseScrolled(double mouseX, double mouseY, double delta) {
+        return history != null && history.mouseScrolled(mouseX, mouseY, delta);
     }
 
     /** The note's pre-flight checklist ①–④, live. */

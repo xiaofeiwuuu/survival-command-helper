@@ -1,5 +1,6 @@
 package com.xiaofeiwu.cmdhelper.client.command;
 
+import com.xiaofeiwu.cmdhelper.client.history.CloneHistoryStore;
 import com.xiaofeiwu.cmdhelper.client.history.CommandHistoryStore;
 import com.xiaofeiwu.cmdhelper.client.registry.RegistryNames;
 import net.minecraft.ChatFormatting;
@@ -41,6 +42,11 @@ public final class CommandExecutor {
         }
         player.displayClientMessage(echo, false);
         CommandHistoryStore.record(commandWithoutSlash);
+        // Every clone that goes out — from the clone screen, the in-world preview, or the history
+        // list — is also kept in the clone screen's own history.
+        if (commandWithoutSlash.startsWith("clone ")) {
+            CloneHistoryStore.shared().record(commandWithoutSlash);
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package com.xiaofeiwu.cmdhelper.client.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The arithmetic behind /clone, kept free of Minecraft classes so it can be tested against the
@@ -100,6 +101,73 @@ public final class CloneCalc {
         int stepY = Math.max(0, source.sizeY() - share);
         int stepZ = Math.max(0, source.sizeZ() - share);
         return directionalOffset(east * stepX, south * stepZ, west * stepX, north * stepZ, up * stepY, down * stepY);
+    }
+
+    /**
+     * Commands that wipe what a clone pasted: the destination area with the source area cut out,
+     * filled with air. The cut-out matters when the two overlap (a shared layer): without it, clearing
+     * the paste would also erase part of the original.
+     */
+    public static List<RegionBounds> clearBoxes(Plan plan) {
+        return plan.destination().minus(plan.source());
+    }
+
+    public static List<String> clearCommands(Plan plan) {
+        List<String> commands = new ArrayList<>();
+        for (RegionBounds box : clearBoxes(plan)) {
+            commands.add(CommandBuilders.fill(
+                    box.minX() + " " + box.minY() + " " + box.minZ(),
+                    box.maxX() + " " + box.maxY() + " " + box.maxZ(),
+                    "minecraft:air", null));
+        }
+        return commands;
+    }
+
+    /** A clone command read back into its parts (for the history list). */
+    public record Parsed(RegionBounds source, int destX, int destY, int destZ, MaskMode mask, CloneMode mode) {
+
+        public Plan plan() {
+            return CloneCalc.plan(source, destX, destY, destZ);
+        }
+    }
+
+    /**
+     * Reads "clone x1 y1 z1 x2 y2 z2 tx ty tz [replace|masked] [normal|force|move]" (no slash).
+     * A missing mode reads back as AUTO. Anything else — including "filtered", which this mod
+     * doesn't build — is not understood and gives empty.
+     */
+    public static Optional<Parsed> parse(String command) {
+        if (command == null) {
+            return Optional.empty();
+        }
+        String[] t = command.trim().split("\\s+");
+        if (t.length < 10 || t.length > 12 || !t[0].equals("clone")) {
+            return Optional.empty();
+        }
+        try {
+            int[] n = new int[9];
+            for (int i = 0; i < 9; i++) {
+                n[i] = Integer.parseInt(t[i + 1]);
+            }
+            MaskMode mask = MaskMode.REPLACE;
+            CloneMode mode = CloneMode.AUTO;
+            for (int i = 10; i < t.length; i++) {
+                switch (t[i]) {
+                    case "replace" -> mask = MaskMode.REPLACE;
+                    case "masked" -> mask = MaskMode.MASKED;
+                    case "normal" -> mode = CloneMode.NORMAL;
+                    case "force" -> mode = CloneMode.FORCE;
+                    case "move" -> mode = CloneMode.MOVE;
+                    default -> {
+                        return Optional.empty();
+                    }
+                }
+            }
+            RegionBounds source = RegionBounds.of(n[0] + " " + n[1] + " " + n[2], n[3] + " " + n[4] + " " + n[5]);
+            return Optional.of(new Parsed(source, n[6], n[7], n[8], mask, mode));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /** The trailing "[replace|masked] [force|move]" part, or null when the defaults already say it. */

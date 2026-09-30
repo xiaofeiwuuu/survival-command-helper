@@ -165,6 +165,85 @@ class CloneCalcTest {
         return java.util.List.of(a[0], a[1], a[2]);
     }
 
+    // ---- clearing what was pasted --------------------------------------------------------------
+
+    @Test
+    void clear_separateCopy_wipesTheWholeDestination() {
+        Plan plan = CloneCalc.planWithOffset(NOTE_SOURCE, 0, 0, NOTE_SOURCE.sizeZ()); // one copy south, right beside
+        assertEquals(java.util.List.of("fill -1267 73 -672 -1258 78 -661 minecraft:air"), CloneCalc.clearCommands(plan));
+    }
+
+    @Test
+    void clear_overlappingCopy_keepsTheSharedLayerOfTheOriginal() {
+        // The pasted floors share layer Y 78 with the source: clearing must leave it alone.
+        Plan plan = CloneCalc.plan(NOTE_SOURCE, -1267, 78, -684);
+        assertEquals(java.util.List.of("fill -1267 79 -684 -1258 83 -673 minecraft:air"), CloneCalc.clearCommands(plan));
+    }
+
+    @Test
+    void clear_neverTouchesAnySourceBlock() {
+        Plan plan = CloneCalc.plan(NOTE_SOURCE, -1262, 75, -680); // overlaps in the middle of the source
+        for (RegionBounds box : CloneCalc.clearBoxes(plan)) {
+            assertFalse(box.intersects(plan.source()));
+        }
+        long cleared = CloneCalc.clearBoxes(plan).stream().mapToLong(RegionBounds::volume).sum();
+        assertTrue(cleared < plan.destination().volume());
+    }
+
+    // ---- reading a clone command back ----------------------------------------------------------
+
+    @Test
+    void parse_noteCommand() {
+        CloneCalc.Parsed p = CloneCalc.parse("clone -1267 73 -684 -1258 78 -673 -1267 78 -684 replace force").orElseThrow();
+        assertEquals(NOTE_SOURCE, p.source());
+        assertEquals(-1267, p.destX());
+        assertEquals(78, p.destY());
+        assertEquals(-684, p.destZ());
+        assertEquals(MaskMode.REPLACE, p.mask());
+        assertEquals(CloneMode.FORCE, p.mode());
+        assertEquals(CloneCalc.plan(NOTE_SOURCE, -1267, 78, -684), p.plan());
+    }
+
+    @Test
+    void parse_defaultsAreReplaceAndAuto() {
+        CloneCalc.Parsed p = CloneCalc.parse("clone 0 0 0 1 1 1 5 5 5").orElseThrow();
+        assertEquals(MaskMode.REPLACE, p.mask());
+        assertEquals(CloneMode.AUTO, p.mode());
+    }
+
+    @Test
+    void parse_maskedAndMove() {
+        CloneCalc.Parsed p = CloneCalc.parse("clone 0 0 0 1 1 1 5 5 5 masked move").orElseThrow();
+        assertEquals(MaskMode.MASKED, p.mask());
+        assertEquals(CloneMode.MOVE, p.mode());
+    }
+
+    @Test
+    void parse_reversedSourceCornersAreNormalised() {
+        assertEquals(CloneCalc.parse("clone 0 0 0 9 5 11 20 0 0"), CloneCalc.parse("clone 9 5 11 0 0 0 20 0 0"));
+    }
+
+    @Test
+    void parse_roundTripsWhatCommandBuilds() {
+        for (MaskMode mask : MaskMode.values()) {
+            for (CloneMode mode : new CloneMode[]{CloneMode.NORMAL, CloneMode.FORCE, CloneMode.MOVE}) {
+                Plan plan = CloneCalc.plan(NOTE_SOURCE, 100, 64, -50);
+                CloneCalc.Parsed p = CloneCalc.parse(CloneCalc.command(plan, mask, mode)).orElseThrow();
+                assertEquals(plan, p.plan());
+                assertEquals(mask, p.mask());
+            }
+        }
+    }
+
+    @Test
+    void parse_rejectsWhatItDoesNotBuild() {
+        assertTrue(CloneCalc.parse("clone 0 0 0 1 1 1 5 5 5 filtered minecraft:stone").isEmpty());
+        assertTrue(CloneCalc.parse("clone 0 0 0 1 1 1 5 5").isEmpty());
+        assertTrue(CloneCalc.parse("clone a 0 0 1 1 1 5 5 5").isEmpty());
+        assertTrue(CloneCalc.parse("fill 0 0 0 1 1 1 5 5 5").isEmpty());
+        assertTrue(CloneCalc.parse(null).isEmpty());
+    }
+
     // ---- overlap ---------------------------------------------------------------------------------
 
     @Test
