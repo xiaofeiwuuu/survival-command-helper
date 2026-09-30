@@ -322,9 +322,27 @@ public class CloneScreen extends CmdHelperScreen {
         return min + "~" + max;
     }
 
+    /** Which way the player is facing, with the axis it points along, e.g. "北（Z-）". */
+    private static String facingLabel(net.minecraft.core.Direction direction) {
+        return switch (direction) {
+            case NORTH -> "北（Z-）";
+            case SOUTH -> "南（Z+）";
+            case EAST -> "东（X+）";
+            case WEST -> "西（X-）";
+            default -> "-";
+        };
+    }
+
     @Override
     protected void renderExtra(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         int left = this.width / 2 - 150;
+        // In the title bar, right-aligned: the directions below are compass directions, so say which
+        // one the player is looking along.
+        var player = this.minecraft.player;
+        if (player != null) {
+            String facing = "当前朝向：" + facingLabel(player.getDirection());
+            g.drawString(this.font, facing, this.width - 8 - this.font.width(facing), 11, COLOR_ACCENT, false);
+        }
         g.drawString(this.font, "源起点", left, 71, COLOR_MUTED, false);
         g.drawString(this.font, "源终点", left, 93, COLOR_MUTED, false);
         if (destMode == DestMode.MANUAL) {
