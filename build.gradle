@@ -9,7 +9,9 @@ version = mod_version
 group = mod_group_id
 
 base {
-    archivesName = mod_id
+    // survival-command-helper-forge-1.20.1-<version>.jar: says what it is and which game it is for.
+    // (The mod id inside the jar stays "cmdhelper"; changing it would orphan the players' config folder.)
+    archivesName = "survival-command-helper-forge-" + minecraft_version
 }
 
 // Mojang ships Java 17 to end users in 1.18+, so your mod should target Java 17.
