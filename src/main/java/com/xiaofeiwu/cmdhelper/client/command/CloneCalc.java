@@ -6,7 +6,7 @@ import java.util.Optional;
 
 /**
  * The arithmetic behind /clone, kept free of Minecraft classes so it can be tested against the
- * worked examples in "clone 注意点.md".
+ * worked examples in the author's own /clone usage notes.
  *
  * What the game actually does (checked against 1.20.1): the two source corners are inclusive and
  * may be given in either order; the destination point is the LOWEST corner of the destination area

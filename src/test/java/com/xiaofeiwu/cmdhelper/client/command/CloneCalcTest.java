@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The examples come straight from "clone 注意点.md". */
+/** The worked examples are the author's own /clone usage notes (two real commands, a stacking case, negative coordinates). */
 class CloneCalcTest {
 
     // Note §1: source -1267 73 -684 ~ -1258 78 -673

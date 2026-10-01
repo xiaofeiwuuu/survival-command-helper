@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * /clone — copy a box of blocks somewhere else.
  *
- * Follows the checklist in "clone 注意点.md": the screen always works out and shows the source area
+ * Follows the author's /clone pre-flight checklist: the screen always works out and shows the source area
  * (both corners inclusive, size = difference + 1), the destination start, and the area the copy will
  * occupy, before any command exists. The maths lives in {@link CloneCalc}.
  */
