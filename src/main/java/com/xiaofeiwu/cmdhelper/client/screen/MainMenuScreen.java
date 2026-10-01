@@ -66,6 +66,8 @@ public class MainMenuScreen extends CmdHelperScreen {
                 new Entry("gui.cmdhelper.op.forceload", () -> minecraft.setScreen(new ForceLoadScreen(this))),
                 new Entry("gui.cmdhelper.op.clone", () -> minecraft.setScreen(new CloneScreen(this))),
 
+                new Entry("gui.cmdhelper.op.blueprint", () -> minecraft.setScreen(new BlueprintScreen(this))),
+
                 // The two "look back" buttons stay last: put new features above this line.
                 new Entry("gui.cmdhelper.op.favorites", () -> minecraft.setScreen(HistoryScreen.favorites(this))),
                 new Entry("gui.cmdhelper.op.history", () -> minecraft.setScreen(new HistoryScreen(this)))

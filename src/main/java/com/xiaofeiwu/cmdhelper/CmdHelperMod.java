@@ -1,5 +1,8 @@
 package com.xiaofeiwu.cmdhelper;
 
+import com.xiaofeiwu.cmdhelper.client.blueprint.BlueprintExecutor;
+import com.xiaofeiwu.cmdhelper.client.blueprint.BlueprintPreview;
+import com.xiaofeiwu.cmdhelper.client.blueprint.BlueprintScanner;
 import com.xiaofeiwu.cmdhelper.client.command.ChatResultCapture;
 import com.xiaofeiwu.cmdhelper.client.preview.FillPreview;
 import com.xiaofeiwu.cmdhelper.client.registry.RegistryDataSource;
@@ -35,10 +38,17 @@ public class CmdHelperMod {
         MinecraftForge.EVENT_BUS.register(ChatResultCapture.class);
         MinecraftForge.EVENT_BUS.register(FillPreview.class);
         MinecraftForge.EVENT_BUS.register(SafeTeleport.class);
+        MinecraftForge.EVENT_BUS.register(BlueprintScanner.class);
+        MinecraftForge.EVENT_BUS.register(BlueprintPreview.class);
+        MinecraftForge.EVENT_BUS.register(BlueprintExecutor.class);
     }
 
     private void registerKeyMappings(RegisterKeyMappingsEvent event) {
         event.register(OPEN_MENU_KEY);
+        event.register(BlueprintPreview.ROTATE_KEY);
+        event.register(BlueprintPreview.MIRROR_KEY);
+        event.register(BlueprintPreview.UP_KEY);
+        event.register(BlueprintPreview.DOWN_KEY);
     }
 
     // Item/block/entity display names are looked up once and cached; switching language or

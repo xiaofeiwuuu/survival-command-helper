@@ -29,6 +29,9 @@ public class SimpleListWidget {
     private final int rowHeight;
     private final Consumer<String> onPick;
     private Function<String, String> describer;
+    // For lists of names rather than commands: the name is the first line (no leading "/"), and the
+    // explanation goes underneath instead of on top.
+    private boolean plainTitle;
     // The describer runs every frame for every visible row; the answer for a given command is fixed.
     private final Map<String, String> descriptionCache = new HashMap<>();
 
@@ -49,6 +52,10 @@ public class SimpleListWidget {
         this.rows = rows;
         this.rowHeight = rowHeight;
         this.onPick = onPick;
+    }
+
+    public void setPlainTitle(boolean plainTitle) {
+        this.plainTitle = plainTitle;
     }
 
     /** Turns a row's raw text into an explanation to show above it; null means "no explanation". */
@@ -143,7 +150,14 @@ public class SimpleListWidget {
 
             int maxWidth = width - 8;
             String description = descriptionOf(item);
-            if (description != null && rowHeight >= TWO_LINE_ROW_HEIGHT) {
+            if (plainTitle) {
+                if (description != null && rowHeight >= TWO_LINE_ROW_HEIGHT) {
+                    g.drawString(font, ellipsize(font, item, maxWidth), x + 4, rowY + 4, 0xFFEDEDED, false);
+                    g.drawString(font, ellipsize(font, description, maxWidth), x + 4, rowY + 15, 0xFF8A8A9A, false);
+                } else {
+                    g.drawString(font, ellipsize(font, item, maxWidth), x + 4, rowY + (rowHeight - 9) / 2, 0xFFEDEDED, false);
+                }
+            } else if (description != null && rowHeight >= TWO_LINE_ROW_HEIGHT) {
                 g.drawString(font, ellipsize(font, description, maxWidth), x + 4, rowY + 4, 0xFFEDEDED, false);
                 g.drawString(font, ellipsize(font, "/" + item, maxWidth), x + 4, rowY + 15, 0xFF8A8A9A, false);
             } else {
