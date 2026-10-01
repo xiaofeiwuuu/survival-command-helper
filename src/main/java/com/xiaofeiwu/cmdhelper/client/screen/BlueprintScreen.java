@@ -148,7 +148,7 @@ public class BlueprintScreen extends CmdHelperScreen {
         int buttonsY = this.height - 26;
         tip(this.addRenderableWidget(Button.builder(Component.literal("预览放置"), b -> startPreview())
                 .bounds(rightX, buttonsY, 100, 18).build()),
-                "关闭界面，在世界里显示这个蓝图的虚影，跟着准星走。\n红色的是这个存档里没有的方块（会被跳过）。\n右键放置，左键取消；R 旋转，G 镜像，PageUp / PageDown 升降。");
+                "关闭界面，在世界里显示这个蓝图的半透明虚影（真实方块），跟着准星走。\n红色的是这个存档里没有的方块（会被跳过）。\n右键放置，左键取消；R 旋转，G 镜像，PageUp / PageDown 升降，\nV 在真实方块和彩色方框之间切换（虚影显示不对时用）。");
         this.deleteButton = tip(this.addRenderableWidget(Button.builder(Component.literal("删除"), b -> delete())
                 .bounds(rightX + 104, buttonsY, 60, 18).build()),
                 "删除选中的蓝图文件。3 秒内点两次才会执行。");
@@ -279,7 +279,8 @@ public class BlueprintScreen extends CmdHelperScreen {
         // how to place, with the player's actual key names
         String keys = "放置：选一个蓝图点「预览放置」，准星指向哪就放在哪。" + keyName(BlueprintPreview.ROTATE_KEY) + " 旋转，"
                 + keyName(BlueprintPreview.MIRROR_KEY) + " 镜像，" + keyName(BlueprintPreview.UP_KEY) + " / "
-                + keyName(BlueprintPreview.DOWN_KEY) + " 升降；右键放置，左键取消。";
+                + keyName(BlueprintPreview.DOWN_KEY) + " 升降，" + keyName(BlueprintPreview.MODE_KEY)
+                + " 切换真实方块 / 方框预览；右键放置，左键取消。";
         int y = 214;
         for (FormattedCharSequence line : this.font.split(Component.literal(keys), leftW)) {
             if (y + 9 > this.height - 8) {

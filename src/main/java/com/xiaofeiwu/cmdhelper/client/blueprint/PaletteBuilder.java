@@ -24,17 +24,19 @@ public final class PaletteBuilder {
     /**
      * @param entries         one per palette entry, in the blueprint's order
      * @param blockIds        the registry id of each entry's block, or -1 if it isn't available here
+     * @param states          each entry's block state after the transform, or null if it isn't available here
      * @param missingBlocks   block ids that don't exist in this game
      * @param missingMods     the namespaces of those that belong to a mod that isn't loaded
      * @param degradedStates  how many entries had a property this game's version of the block doesn't know
      */
-    public record Prepared(List<PaletteEntry> entries, int[] blockIds, Set<String> missingBlocks,
+    public record Prepared(List<PaletteEntry> entries, int[] blockIds, BlockState[] states, Set<String> missingBlocks,
                            Set<String> missingMods, int degradedStates) {
     }
 
     public static Prepared prepare(Blueprint blueprint, Transform transform) {
         List<PaletteEntry> entries = new ArrayList<>();
         int[] blockIds = new int[blueprint.palette().size()];
+        BlockState[] states = new BlockState[blueprint.palette().size()];
         Set<String> missingBlocks = new LinkedHashSet<>();
         Set<String> missingMods = new LinkedHashSet<>();
         int degraded = 0;
@@ -60,7 +62,8 @@ public final class PaletteBuilder {
             Pass pass = state.isAir() ? Pass.CLEAR : (state.canOcclude() ? Pass.SOLID : Pass.ATTACHED);
             entries.add(new PaletteEntry(StateStrings.minimal(state), true, pass));
             blockIds[i] = BuiltInRegistries.BLOCK.getId(state.getBlock());
+            states[i] = state;
         }
-        return new Prepared(entries, blockIds, missingBlocks, missingMods, degraded);
+        return new Prepared(entries, blockIds, states, missingBlocks, missingMods, degraded);
     }
 }

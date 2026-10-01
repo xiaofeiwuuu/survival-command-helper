@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.debug.DebugRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -39,12 +40,14 @@ public final class BlueprintPreview {
     public static final KeyMapping MIRROR_KEY = new KeyMapping("key.cmdhelper.blueprint_mirror", GLFW.GLFW_KEY_G, "key.categories.cmdhelper");
     public static final KeyMapping UP_KEY = new KeyMapping("key.cmdhelper.blueprint_up", GLFW.GLFW_KEY_PAGE_UP, "key.categories.cmdhelper");
     public static final KeyMapping DOWN_KEY = new KeyMapping("key.cmdhelper.blueprint_down", GLFW.GLFW_KEY_PAGE_DOWN, "key.categories.cmdhelper");
+    public static final KeyMapping MODE_KEY = new KeyMapping("key.cmdhelper.blueprint_mode", GLFW.GLFW_KEY_V, "key.categories.cmdhelper");
 
     /** More boxes than this are not drawn (the filled faces get expensive); the rest still get built. */
     private static final int MAX_DRAWN_BOXES = 3000;
     private static final float FACE_ALPHA = 0.22f;
     private static final double INFLATE = 0.003;
     private static final double PICK_DISTANCE = 300.0;
+    private static final float GHOST_ALPHA = 0.6f;
 
     private record DrawBox(AABB box, float[] color) {
     }
@@ -62,8 +65,17 @@ public final class BlueprintPreview {
     private static int planYOffset;
     private static Plan plan;
     private static int[] planMin;
-    private static List<DrawBox> drawBoxes = List.of();
+    private static List<DrawBox> drawBoxes = List.of();       // every box, for the coloured-boxes mode
+    private static List<DrawBox> skippedBoxes = List.of();    // only what won't be built (red), shown over the ghost
+    private static List<DrawBox> standInBoxes = List.of();    // blocks the ghost can't draw as models
     private static AABB outline;
+
+    // The real-block ghost. Falls back to coloured boxes if it can't be made, or if it draws wrong (V toggles).
+    private static boolean realBlocks = true;
+    private static final Map<Transform, GhostModel> GHOSTS = new HashMap<>();
+    private static GhostModel currentGhost;
+    private static GhostModel planGhost;
+    private static String ghostNote = "";
     private static String lastStatus;
     private static int ticksSinceStatus;
 
@@ -74,7 +86,18 @@ public final class BlueprintPreview {
         return blueprint != null;
     }
 
+    private static void closeGhosts() {
+        for (GhostModel ghost : GHOSTS.values()) {
+            ghost.close();
+        }
+        GHOSTS.clear();
+        currentGhost = null;
+        planGhost = null;
+    }
+
     public static void start(Blueprint bp, boolean clearAir, boolean verify) {
+        closeGhosts();
+        ghostNote = "";
         blueprint = bp;
         includeAir = clearAir;
         verifyAfter = verify;
@@ -91,6 +114,8 @@ public final class BlueprintPreview {
         }
         while (DOWN_KEY.consumeClick()) {
         }
+        while (MODE_KEY.consumeClick()) {
+        }
         anchor = null;
         plan = null;
         planAnchor = null;
@@ -100,10 +125,13 @@ public final class BlueprintPreview {
     }
 
     public static void cancel() {
+        closeGhosts();
         blueprint = null;
         plan = null;
         PREPARED.clear();
         drawBoxes = List.of();
+        skippedBoxes = List.of();
+        standInBoxes = List.of();
         outline = null;
         lastStatus = null;
     }
@@ -137,19 +165,80 @@ public final class BlueprintPreview {
             while (DOWN_KEY.consumeClick()) {
                 yOffset--;
             }
+            while (MODE_KEY.consumeClick()) {
+                realBlocks = !realBlocks;
+                ghostNote = "";
+                lastStatus = null;
+            }
         }
+        currentGhost = realBlocks ? ghostFor(transform) : null;
         HitResult hit = mc.player.pick(PICK_DISTANCE, 1.0f, false);
         anchor = hit.getType() == HitResult.Type.BLOCK ? ((BlockHitResult) hit).getBlockPos() : null;
 
-        if (anchor != null && (!anchor.equals(planAnchor) || !transform.equals(planTransform) || yOffset != planYOffset)) {
+        if (anchor != null && (!anchor.equals(planAnchor) || !transform.equals(planTransform) || yOffset != planYOffset
+                || currentGhost != planGhost)) {
             rebuildPlan();
         } else if (anchor == null) {
             plan = null;
             drawBoxes = List.of();
+            skippedBoxes = List.of();
+            standInBoxes = List.of();
             outline = null;
         }
         if (mc.screen == null) {
             showStatus(mc);
+        }
+    }
+
+    /** The blueprint's blocks, already rotated/mirrored, as one block state per cell (null = nothing). */
+    private static BlockState[] gridFor(Transform t, PaletteBuilder.Prepared prepared) {
+        int[] size = t.horizontalSize(blueprint.sizeX(), blueprint.sizeZ());
+        BlockState[] grid = new BlockState[size[0] * blueprint.sizeY() * size[1]];
+        for (Cuboid c : blueprint.cuboids()) {
+            BlockState state = prepared.states()[c.paletteIndex()];
+            if (state == null || state.isAir()) {
+                continue;
+            }
+            Cuboid r = t.apply(c, blueprint.sizeX(), blueprint.sizeZ());
+            for (int y = r.y0(); y <= r.y1(); y++) {
+                for (int z = r.z0(); z <= r.z1(); z++) {
+                    for (int x = r.x0(); x <= r.x1(); x++) {
+                        grid[VoxelMerger.index(x, y, z, size[0], size[1])] = state;
+                    }
+                }
+            }
+        }
+        return grid;
+    }
+
+    /**
+     * The baked ghost for a rotation/mirror, made the first time it's needed. Null — and the preview
+     * falls back to boxes — if the blueprint is too big to bake or baking fails.
+     */
+    private static GhostModel ghostFor(Transform t) {
+        GhostModel cached = GHOSTS.get(t);
+        if (cached != null) {
+            return cached;
+        }
+        if (GHOSTS.containsKey(t) || !ghostNote.isEmpty()) {
+            return null; // already tried and failed
+        }
+        try {
+            PaletteBuilder.Prepared prepared = prepared();
+            BlockState[] grid = gridFor(t, prepared);
+            int count = GhostModel.countBlocks(grid);
+            if (count > GhostModel.MAX_MODEL_BLOCKS) {
+                ghostNote = "方块太多（" + count + " 个，上限 " + GhostModel.MAX_MODEL_BLOCKS + "），改用方框预览";
+                return null;
+            }
+            int[] size = t.horizontalSize(blueprint.sizeX(), blueprint.sizeZ());
+            GhostModel ghost = GhostModel.bake(grid, size[0], blueprint.sizeY(), size[1]);
+            GHOSTS.put(t, ghost);
+            return ghost;
+        } catch (RuntimeException | LinkageError e) {
+            realBlocks = false;
+            ghostNote = "真实方块预览出错，已改用方框（" + e.getClass().getSimpleName() + "）";
+            return null;
         }
     }
 
@@ -165,19 +254,37 @@ public final class BlueprintPreview {
         planYOffset = yOffset;
 
         List<DrawBox> boxes = new ArrayList<>();
+        List<DrawBox> skipped = new ArrayList<>();
         for (Placed placed : plan.placed()) {
-            if (boxes.size() >= MAX_DRAWN_BOXES) {
-                break;
-            }
             Cuboid c = placed.cuboid();
             String state = prepared.entries().get(c.paletteIndex()).state();
             if (Blueprint.isAir(state)) {
                 continue; // clearing space isn't drawn; the outline shows the area
             }
             float[] color = placed.skipped() ? new float[]{1f, 0.2f, 0.2f} : ColorOf.rgb(Blueprint.blockId(state));
-            boxes.add(new DrawBox(new AABB(c.x0(), c.y0(), c.z0(), c.x1() + 1, c.y1() + 1, c.z1() + 1).inflate(INFLATE), color));
+            DrawBox box = new DrawBox(new AABB(c.x0(), c.y0(), c.z0(), c.x1() + 1, c.y1() + 1, c.z1() + 1).inflate(INFLATE), color);
+            if (boxes.size() < MAX_DRAWN_BOXES) {
+                boxes.add(box);
+            }
+            if (placed.skipped() && skipped.size() < MAX_DRAWN_BOXES) {
+                skipped.add(box);
+            }
         }
         drawBoxes = boxes;
+        skippedBoxes = skipped;
+
+        List<DrawBox> stand = new ArrayList<>();
+        planGhost = currentGhost;
+        if (currentGhost != null) {
+            for (GhostModel.Stand s : currentGhost.stand()) {
+                if (stand.size() >= MAX_DRAWN_BOXES) {
+                    break;
+                }
+                int wx = min[0] + s.x(), wy = min[1] + s.y(), wz = min[2] + s.z();
+                stand.add(new DrawBox(new AABB(wx, wy, wz, wx + 1, wy + 1, wz + 1).inflate(INFLATE), ColorOf.rgb(s.blockId())));
+            }
+        }
+        standInBoxes = stand;
         outline = new AABB(min[0], min[1], min[2], min[0] + size[0], min[1] + blueprint.sizeY(), min[2] + size[1]);
     }
 
@@ -198,7 +305,8 @@ public final class BlueprintPreview {
             text = "蓝图「" + blueprint.name() + "」 旋转 " + transform.quarterTurns() * 90 + "°" + (transform.mirrorX() ? " 镜像" : "")
                     + " 高度" + (yOffset >= 0 ? "+" : "") + yOffset + "  |  " + stats.commandCount() + " 条命令" + skipped
                     + "  |  右键放置 左键取消 " + keyName(ROTATE_KEY) + "旋转 " + keyName(MIRROR_KEY) + "镜像 "
-                    + keyName(UP_KEY) + "/" + keyName(DOWN_KEY) + "升降";
+                    + keyName(UP_KEY) + "/" + keyName(DOWN_KEY) + "升降 " + keyName(MODE_KEY) + "切换预览("
+                    + (currentGhost != null ? "方块" : "方框") + ")" + (ghostNote.isEmpty() ? "" : "  " + ghostNote);
         }
         ticksSinceStatus++;
         if (!text.equals(lastStatus) || ticksSinceStatus >= 40) {
@@ -250,6 +358,15 @@ public final class BlueprintPreview {
 
     // ---- drawing ----------------------------------------------------------------------------------
 
+    private static void drawBoxList(List<DrawBox> boxes, PoseStack poseStack, MultiBufferSource.BufferSource buffers, Vec3 cam) {
+        for (DrawBox d : boxes) {
+            AABB box = d.box().move(-cam.x, -cam.y, -cam.z);
+            DebugRenderer.renderFilledBox(poseStack, buffers, box, d.color()[0], d.color()[1], d.color()[2], FACE_ALPHA);
+            LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(RenderType.lines()), box,
+                    d.color()[0], d.color()[1], d.color()[2], 0.9f);
+        }
+    }
+
     @SubscribeEvent
     public static void onRenderLevel(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS || blueprint == null || outline == null) {
@@ -259,11 +376,13 @@ public final class BlueprintPreview {
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource.BufferSource buffers = Minecraft.getInstance().renderBuffers().bufferSource();
 
-        for (DrawBox d : drawBoxes) {
-            AABB box = d.box().move(-cam.x, -cam.y, -cam.z);
-            DebugRenderer.renderFilledBox(poseStack, buffers, box, d.color()[0], d.color()[1], d.color()[2], FACE_ALPHA);
-            LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(RenderType.lines()), box,
-                    d.color()[0], d.color()[1], d.color()[2], 0.9f);
+        if (currentGhost != null && planMin != null && planGhost == currentGhost) {
+            // the real blocks, see-through
+            currentGhost.draw(poseStack.last().pose(), event.getProjectionMatrix(), cam, planMin[0], planMin[1], planMin[2], GHOST_ALPHA);
+            drawBoxList(standInBoxes, poseStack, buffers, cam);   // chests, beds, water...: boxes
+            drawBoxList(skippedBoxes, poseStack, buffers, cam);   // missing blocks: red
+        } else {
+            drawBoxList(drawBoxes, poseStack, buffers, cam);
         }
         // The whole footprint, so it's clear where the blueprint ends even where it is mostly air.
         LevelRenderer.renderLineBox(poseStack, buffers.getBuffer(RenderType.lines()),

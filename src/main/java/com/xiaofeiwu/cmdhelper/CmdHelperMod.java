@@ -49,6 +49,7 @@ public class CmdHelperMod {
         event.register(BlueprintPreview.MIRROR_KEY);
         event.register(BlueprintPreview.UP_KEY);
         event.register(BlueprintPreview.DOWN_KEY);
+        event.register(BlueprintPreview.MODE_KEY);
     }
 
     // Item/block/entity display names are looked up once and cached; switching language or
