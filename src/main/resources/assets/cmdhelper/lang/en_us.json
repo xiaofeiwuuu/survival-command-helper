@@ -15,7 +15,7 @@
   "key.cmdhelper.blueprint_mirror": "Blueprint: Mirror",
   "key.cmdhelper.blueprint_up": "Blueprint: Raise",
   "key.cmdhelper.blueprint_down": "Blueprint: Lower",
-  "key.cmdhelper.blueprint_mode": "Blueprint: Toggle Preview (Blocks / Boxes)",
+  "key.cmdhelper.blueprint_mode": "Preview: Toggle Blocks / Boxes",
   "gui.cmdhelper.op.kill_hostile": "Clear Hostiles",
   "gui.cmdhelper.op.tp": "Teleport",
   "gui.cmdhelper.op.fill": "Fill Blocks",

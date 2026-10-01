@@ -1,5 +1,6 @@
 package com.xiaofeiwu.cmdhelper.client.screen;
 
+import com.xiaofeiwu.cmdhelper.client.blueprint.GhostGrids;
 import com.xiaofeiwu.cmdhelper.client.command.CommandBuilders;
 import com.xiaofeiwu.cmdhelper.client.command.CommandExecutor;
 import com.xiaofeiwu.cmdhelper.client.command.CommandTreeReader;
@@ -393,7 +394,10 @@ public class FillScreen extends CmdHelperScreen {
     }
 
     private static FillPreview.Plan plan(RelativeRegion.Corners c, String blockId, String modeArg) {
-        return new FillPreview.Plan(c.from(), c.to(), CommandBuilders.fill(c.from(), c.to(), blockId, modeArg));
+        // The ghost is the block being filled in; hollow / outline put it on the outer layer only.
+        return new FillPreview.Plan(c.from(), c.to(), CommandBuilders.fill(c.from(), c.to(), blockId, modeArg),
+                null, null, "填充预览",
+                FillPreview.Ghost.fill(blockId, GhostGrids.shapeForFillMode(modeArg)));
     }
 
     private static int parseIntOr(String s, int fallback) {

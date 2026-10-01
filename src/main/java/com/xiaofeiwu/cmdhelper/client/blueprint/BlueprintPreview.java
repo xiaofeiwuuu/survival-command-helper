@@ -71,7 +71,6 @@ public final class BlueprintPreview {
     private static AABB outline;
 
     // The real-block ghost. Falls back to coloured boxes if it can't be made, or if it draws wrong (V toggles).
-    private static boolean realBlocks = true;
     private static final Map<Transform, GhostModel> GHOSTS = new HashMap<>();
     private static GhostModel currentGhost;
     private static GhostModel planGhost;
@@ -166,12 +165,12 @@ public final class BlueprintPreview {
                 yOffset--;
             }
             while (MODE_KEY.consumeClick()) {
-                realBlocks = !realBlocks;
+                GhostPreferences.realBlocks = !GhostPreferences.realBlocks;
                 ghostNote = "";
                 lastStatus = null;
             }
         }
-        currentGhost = realBlocks ? ghostFor(transform) : null;
+        currentGhost = GhostPreferences.realBlocks ? ghostFor(transform) : null;
         HitResult hit = mc.player.pick(PICK_DISTANCE, 1.0f, false);
         anchor = hit.getType() == HitResult.Type.BLOCK ? ((BlockHitResult) hit).getBlockPos() : null;
 
@@ -236,7 +235,7 @@ public final class BlueprintPreview {
             GHOSTS.put(t, ghost);
             return ghost;
         } catch (RuntimeException | LinkageError e) {
-            realBlocks = false;
+            GhostPreferences.realBlocks = false;
             ghostNote = "真实方块预览出错，已改用方框（" + e.getClass().getSimpleName() + "）";
             return null;
         }

@@ -18,7 +18,7 @@
   "key.cmdhelper.blueprint_mirror": "蓝图：镜像",
   "key.cmdhelper.blueprint_up": "蓝图：升高一格",
   "key.cmdhelper.blueprint_down": "蓝图：降低一格",
-  "key.cmdhelper.blueprint_mode": "蓝图：切换预览方式（真实方块 / 方框）",
+  "key.cmdhelper.blueprint_mode": "预览：切换真实方块 / 方框",
   "gui.cmdhelper.op.setblock": "放置方块",
   "gui.cmdhelper.op.summon": "召唤生物",
   "gui.cmdhelper.op.environment": "天气与时间",

@@ -488,7 +488,8 @@ public class CloneScreen extends CmdHelperScreen {
         RegionBounds d = r.plan().destination();
         FillPreview.Plan plan = new FillPreview.Plan(
                 s.minX() + " " + s.minY() + " " + s.minZ(), s.maxX() + " " + s.maxY() + " " + s.maxZ(), r.command(),
-                d.minX() + " " + d.minY() + " " + d.minZ(), d.maxX() + " " + d.maxY() + " " + d.maxZ(), "复制预览");
+                d.minX() + " " + d.minY() + " " + d.minZ(), d.maxX() + " " + d.maxY() + " " + d.maxZ(), "复制预览",
+                FillPreview.Ghost.copyOfSource()); // the source blocks, shown where they will land
         FillPreview.start(() -> plan);
         this.minecraft.setScreen(null);
     }
